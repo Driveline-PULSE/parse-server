@@ -6,6 +6,7 @@ import sql              from './sql';
 const PostgresRelationDoesNotExistError = '42P01';
 const PostgresDuplicateRelationError = '42P07';
 const PostgresDuplicateColumnError = '42701';
+const PostgresDuplicateObjectError = '42710';
 const PostgresUniqueIndexViolationError = '23505';
 const PostgresTransactionAbortedError = '25P02';
 const logger = require('../../../logger');
@@ -416,7 +417,9 @@ export class PostgresStorageAdapter {
     conn = conn || this._client;
     return conn.none('CREATE TABLE IF NOT EXISTS "_SCHEMA" ( "className" varChar(120), "schema" jsonb, "isParseClass" bool, PRIMARY KEY ("className") )')
     .catch(error => {
-      if (error.code === PostgresDuplicateRelationError || error.code === PostgresUniqueIndexViolationError) {
+      if (error.code === PostgresDuplicateRelationError
+          || error.code === PostgresUniqueIndexViolationError
+          || error.code === PostgresDuplicateObjectError) {
         // Table already exists, must have been created by a different request. Ignore error.
       } else {
         throw error;
@@ -540,15 +543,15 @@ export class PostgresStorageAdapter {
         promise = t.none('CREATE TABLE IF NOT EXISTS $<joinTable:name> ("relatedId" varChar(120), "owningId" varChar(120), PRIMARY KEY("relatedId", "owningId") )', {joinTable: `_Join:${fieldName}:${className}`})
       }
       return promise.then(() => {
-        return t.any('SELECT "schema" FROM "_SCHEMA" WHERE "className" = $<className>', {className});
+        return t.any('SELECT "schema" FROM "_SCHEMA" WHERE "className" = $<className> and ("schema"::json->\'fields\'->$<fieldName>) is not null', {className, fieldName});
       }).then(result => {
-        if (fieldName in result[0].schema.fields) {
+        if (result[0]) {
           throw "Attempted to add a field that already exists";
         } else {
-          result[0].schema.fields[fieldName] = type;
+          const path = `{fields,${fieldName}}`;
           return t.none(
-            'UPDATE "_SCHEMA" SET "schema"=$<schema> WHERE "className"=$<className>',
-            {schema: result[0].schema, className}
+            'UPDATE "_SCHEMA" SET "schema"=jsonb_set("schema", $<path>, $<type>)  WHERE "className"=$<className>',
+            { path, type, className }
           );
         }
       });
@@ -620,7 +623,7 @@ export class PostgresStorageAdapter {
       const values = [className, ...fieldNames];
       const columns = fieldNames.map((name, idx) => {
         return `$${idx + 2}:name`;
-      }).join(',');
+      }).join(', DROP COLUMN');
 
       const doBatch = (t) => {
         const batch = [
@@ -1071,6 +1074,7 @@ export class PostgresStorageAdapter {
         }
         if (object[fieldName] && schema.fields[fieldName].type === 'GeoPoint') {
           object[fieldName] = {
+            __type: "GeoPoint",
             latitude: object[fieldName].y,
             longitude: object[fieldName].x
           }

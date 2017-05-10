@@ -1,5 +1,56 @@
 ## Parse Server Changelog
 
+### 2.3.8
+[Full Changelog](https://github.com/ParsePlatform/parse-server/compare/2.3.7...2.3.8)
+
+#### New Features
+* Support for PG-Promise options, thanks to [ren dong](https://github.com/rendongsc)
+
+#### Improvements
+* Improves support for graceful shutdown, thanks to [Florent Vilmart](https://github.com/flovilmart)
+* Improves configuration validation for Twitter Authentication, thanks to [Benjamin Wilson Friedman](https://github.com/montymxb)
+
+#### Bug Fixes
+* Fixes issue affecting GeoPoint __type with Postgres, thanks to [zhoul-HS](https://github.com/zhoul-HS)
+* Prevent user creation if username or password is empty, thanks to [Wissam Abirached](https://github.com/wabirached)
+
+#### Dependency Updates:
+* [cross-env@4.0.0 ](https://www.npmjs.com/package/cross-env)
+* [ws@2.2.3](https://www.npmjs.com/package/ws)
+* [babel-core@6.24.0](https://www.npmjs.com/package/babel-core)
+* [uws@0.14.0](https://www.npmjs.com/package/uws)
+* [babel-preset-es2015@6.24.0](https://www.npmjs.com/package/babel-preset-es2015)
+* [babel-plugin-syntax-flow@6.18.0](https://www.npmjs.com/package/babel-plugin-syntax-flow)
+* [babel-cli@6.24.0](https://www.npmjs.com/package/babel-cli)
+* [babel-register@6.24.0](https://www.npmjs.com/package/babel-register)
+* [winston-daily-rotate-file@1.4.6](https://www.npmjs.com/package/winston-daily-rotate-file)
+* [mongodb@2.2.25](https://www.npmjs.com/package/mongodb)
+* [redis@2.7.0](https://www.npmjs.com/package/redis)
+* [pg-promise@5.6.4](https://www.npmjs.com/package/pg-promise)
+* [parse-server-push-adapter@1.3.0](https://www.npmjs.com/package/parse-server-push-adapter)
+
+### 2.3.7
+[Full Changelog](https://github.com/ParsePlatform/parse-server/compare/2.3.6...2.3.7)
+
+#### New Features
+* New endpoint to resend verification email, thanks to [Xy Ziemba](https://github.com/xyziemba)
+
+#### Improvements
+* Add TTL option for Redis Cache Adapter, thanks to [Ryan Foster](https://github.com/f0ster)
+* Update Postgres Storage Adapter, thanks to [Vitaly Tomilov](https://github.com/vitaly-t)
+
+#### Bug Fixes
+* Add index on Role.name, fixes (#3579), thanks to [Natan Rolnik](https://github.com/natanrolnik)
+* Fix default value of userSensitiveFields, fixes (#3593), thanks to [Arthur Cinader](https://github.com/acinader)
+
+#### Dependency Updates:
+* [body-parser@1.17.1](https://www.npmjs.com/package/body-parser)
+* [express@4.15.2](https://www.npmjs.com/package/express)
+* [request@2.81.0](https://www.npmjs.com/package/request)
+* [winston-daily-rotate-file@1.4.5](https://www.npmjs.com/package/winston-daily-rotate-file)
+* [ws@2.2.0](https://www.npmjs.com/package/ws)
+
+
 ### 2.3.6
 [Full Changelog](https://github.com/ParsePlatform/parse-server/compare/2.3.5...2.3.6)
 
