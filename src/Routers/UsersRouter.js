@@ -94,7 +94,7 @@ export class UsersRouter extends ClassesRouter {
         }
         return Parse.Promise.when([
           passwordCrypto.compare(req.body.password, user.password),
-          passwordCrypto.compare(req.body.password, '$2a$10$lKE3GvXh/BoqK.Gk8qVa1uymckE9Paq7Bq7Lz.3C7fhLpQSrzjUX.')
+          passwordCrypto.compare(req.body.password, '$2a$10$b6.F7DaY3p7sKhDILom9fek7SZd0uFHfL/RN05fw3F3yka3d7Cwa.')
           ]);
       })
       .then((correctArray) => {
