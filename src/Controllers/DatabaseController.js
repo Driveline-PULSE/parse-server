@@ -529,7 +529,7 @@ DatabaseController.prototype.create = function(className, object, { acl } = {}) 
   })
 };
 
-DatabaseController.prototype.createMultiple = function (className, objects) {
+DatabaseController.prototype.createMultiple = function (className, objects, { acl } = {}) {
 
   // Make a copy of the object, so we don't mutate the incoming data.
   const originalObjects = objects;
@@ -543,9 +543,9 @@ DatabaseController.prototype.createMultiple = function (className, objects) {
   var isMaster = acl === undefined;
   var aclGroup = acl || [];
 
-  return this.validateClassName(className).then(function () {
-    return this.loadSchema();
-  }).then(function (schemaController) {
+  return this.validateClassName(className)
+  .then(() => this.loadSchema())
+  .then((schemaController) => {
     return (isMaster ? Promise.resolve() : schemaController.validatePermission(className, aclGroup, 'create'))
     .then(() => schemaController.enforceClassExists(className))
     .then(() => schemaController.reloadData())
@@ -556,8 +556,7 @@ DatabaseController.prototype.createMultiple = function (className, objects) {
       });
       return this.adapter.createObjects(className, SchemaController.convertSchemaToAdapterSchema(schema), objects);
     }).then((result) => {
-      console.log(result);
-      var promises = [];
+      const promises = [];
       originalObjects.forEach((originalObject, index) => {
         promises.push(sanitizeDatabaseResult(originalObject, result.ops[index]));
       });

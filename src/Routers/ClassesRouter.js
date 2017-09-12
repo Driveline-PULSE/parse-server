@@ -133,7 +133,7 @@ export class ClassesRouter extends PromiseRouter {
     this.route('GET', '/classes/:className', (req) => { return this.handleFind(req); });
     this.route('GET', '/classes/:className/:objectId', (req) => { return this.handleGet(req); });
     this.route('POST', '/classes/:className', (req) => { return this.handleCreate(req); });
-    this.route('POST', '/classes/:className/batch', function (req) { return this.handleCreateBatch(req); });
+    this.route('POST', '/classes/:className/batch', (req) => { return this.handleCreateBatch(req); });
     this.route('PUT', '/classes/:className/:objectId', (req) => { return this.handleUpdate(req); });
     this.route('DELETE',  '/classes/:className/:objectId', (req) => { return this.handleDelete(req); });
   }

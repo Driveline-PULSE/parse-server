@@ -80,12 +80,12 @@ function handleBatch(router, req) {
   });
 
   Object.keys(groupedByMethod).forEach((method) => {
-    if (method === 'POST' && false) {
+    if (method === 'POST') {
       const groupedByPath = _lodash.groupBy(req.body.requests, function(req) {
         return req.path;
       });
       Object.keys(groupedByPath).forEach((path) => {
-
+        console.log("Batching " + path + " x" + groupedByPath[path].length);
         const routablePath = makeRoutablePath(groupedByPath[path][0].path) + '/batch/';
         var body = groupedByPath[path].map((req) => {
           return req.body;
@@ -100,7 +100,7 @@ function handleBatch(router, req) {
           return response.response.map((response) => {
             return { success: response };
           });
-        }, function (errors) {
+        }, function (error) {
           return { error: { code: error.code, error: error.message } };
         });
         promises.push(promise);
@@ -130,7 +130,7 @@ function handleBatch(router, req) {
   return Promise.all(promises).then(function (results) {
     var r = [];
     results.forEach((result) => {
-      if (typeof result === 'array') {
+      if (Array.isArray(result)) {
         r = r.concat(result);
       }
       else {

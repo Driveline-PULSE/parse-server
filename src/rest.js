@@ -12,6 +12,7 @@ import Auth from './Auth';
 
 var RestQuery = require('./RestQuery');
 var RestWrite = require('./RestWrite');
+var RestWriteBatch = require('./RestWriteBatch');
 var triggers = require('./triggers');
 
 function checkTriggers(className, config, types) {

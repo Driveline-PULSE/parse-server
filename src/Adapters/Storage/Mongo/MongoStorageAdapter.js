@@ -284,7 +284,7 @@ export class MongoStorageAdapter {
   createObjects(className, schema, objects) {
     schema = convertParseSchemaToMongoSchema(schema);
     const mongoObjects = objects.map((object) => {
-      return (0, _MongoTransform.parseObjectToMongoObjectForCreate)(className, object, schema);;
+      return parseObjectToMongoObjectForCreate(className, object, schema);;
     });
 
     return this._adaptiveCollection(className)
