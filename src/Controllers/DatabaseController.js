@@ -547,7 +547,7 @@ DatabaseController.prototype.createMultiple = function (className, objects) {
     return this.loadSchema();
   }).then(function (schemaController) {
     return (isMaster ? Promise.resolve() : schemaController.validatePermission(className, aclGroup, 'create'))
-    .then(() => schemaController.enforceClassExists(className)})
+    .then(() => schemaController.enforceClassExists(className))
     .then(() => schemaController.reloadData())
     .then(() => schemaController.getOneSchema(className, true))
     .then((schema) => {
