@@ -60,7 +60,7 @@ export default class MongoCollection {
   }
 
   insertMany(objects) {
-    return this._mongoCollection.insertMany(objects);
+    return this._mongoCollection.insertMany(objects, { ordered: false });
   }
 
   // Atomically updates data in the database for a single (first) object that matched the query
