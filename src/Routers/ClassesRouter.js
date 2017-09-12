@@ -102,6 +102,10 @@ export class ClassesRouter extends PromiseRouter {
     return rest.create(req.config, req.auth, req.params.className, req.body, req.info.clientSDK);
   }
 
+  handleCreateBatch(req) {
+    return rest.createBatch(req.config, req.auth, req.params.className, req.body, req.info.clientSDK);
+  }
+
   handleUpdate(req) {
     return rest.update(req.config, req.auth, req.params.className, req.params.objectId, req.body, req.info.clientSDK);
   }
@@ -129,6 +133,7 @@ export class ClassesRouter extends PromiseRouter {
     this.route('GET', '/classes/:className', (req) => { return this.handleFind(req); });
     this.route('GET', '/classes/:className/:objectId', (req) => { return this.handleGet(req); });
     this.route('POST', '/classes/:className', (req) => { return this.handleCreate(req); });
+    this.route('POST', '/classes/:className/batch', function (req) { return this.handleCreateBatch(req); });
     this.route('PUT', '/classes/:className/:objectId', (req) => { return this.handleUpdate(req); });
     this.route('DELETE',  '/classes/:className/:objectId', (req) => { return this.handleDelete(req); });
   }

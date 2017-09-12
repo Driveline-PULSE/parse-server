@@ -281,6 +281,22 @@ export class MongoStorageAdapter {
       throw error;
     });
   }
+  createObjects(className, schema, objects) {
+    schema = convertParseSchemaToMongoSchema(schema);
+    const mongoObjects = objects.map((object) => {
+      return (0, _MongoTransform.parseObjectToMongoObjectForCreate)(className, object, schema);;
+    });
+
+    return this._adaptiveCollection(className)
+    .then(collection => collection.insertMany(mongoObjects))
+    .catch(error => {
+      if (error.code === 11000) {
+        Parse.Error(Parse.Error.DUPLICATE_VALUE,
+            'A duplicate value for a field with unique values was provided');
+      }
+      throw error;
+    });
+  }
 
   // Remove all objects that match the given Parse Query.
   // If no objects match, reject with OBJECT_NOT_FOUND. If objects are found and deleted, resolve with undefined.

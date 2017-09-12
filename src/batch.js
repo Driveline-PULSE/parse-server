@@ -3,6 +3,7 @@ const url = require('url');
 const path = require('path');
 // These methods handle batch requests.
 const batchPath = '/batch';
+const _lodash = require('lodash');
 
 // Mounts a batch-handler onto a PromiseRouter.
 function mountOnto(router) {
@@ -72,25 +73,71 @@ function handleBatch(router, req) {
 
   const makeRoutablePath = makeBatchRoutingPathFunction(req.originalUrl, req.config.serverURL, req.config.publicServerURL);
 
-  const promises = req.body.requests.map((restRequest) => {
-    const routablePath = makeRoutablePath(restRequest.path);
-    // Construct a request that we can send to a handler
-    const request = {
-      body: restRequest.body,
-      config: req.config,
-      auth: req.auth,
-      info: req.info
-    };
+  var promises = [];
 
-    return router.tryRouteRequest(restRequest.method, routablePath, request).then((response) => {
-      return {success: response.response};
-    }, (error) => {
-      return {error: {code: error.code, error: error.message}};
-    });
+  const groupedByMethod = _lodash.groupBy(req.body.requests, function(req) {
+    return req.method;
   });
 
-  return Promise.all(promises).then((results) => {
-    return {response: results};
+  Object.keys(groupedByMethod).forEach((method) => {
+    if (method === 'POST' && false) {
+      const groupedByPath = _lodash.groupBy(req.body.requests, function(req) {
+        return req.path;
+      });
+      Object.keys(groupedByPath).forEach((path) => {
+
+        const routablePath = makeRoutablePath(groupedByPath[path][0].path) + '/batch/';
+        var body = groupedByPath[path].map((req) => {
+          return req.body;
+        });
+        const request = {
+          body: body,
+          config: req.config,
+          auth: req.auth,
+          info: req.info
+        };
+        const promise = router.tryRouteRequest(method, routablePath, request).then(function (response) {
+          return response.response.map((response) => {
+            return { success: response };
+          });
+        }, function (errors) {
+          return { error: { code: error.code, error: error.message } };
+        });
+        promises.push(promise);
+      });
+    }
+    else {
+      groupedByMethod[method].forEach((restRequest) => {
+        const routablePath = makeRoutablePath(restRequest.path);
+        // Construct a request that we can send to a handler
+        const request = {
+          body: restRequest.body,
+          config: req.config,
+          auth: req.auth,
+          info: req.info
+        };
+
+        const promise = router.tryRouteRequest(restRequest.method, routablePath, request).then((response) => {
+          return { success: response.response };
+        }, (error) => {
+          return { error: { code: error.code, error: error.message }};
+        });
+        promises.push(promise);
+      });
+    }
+  });
+
+  return Promise.all(promises).then(function (results) {
+    var r = [];
+    results.forEach((result) => {
+      if (typeof result === 'array') {
+        r = r.concat(result);
+      }
+      else {
+        r.push(result);
+      }
+    })
+    return { response: r };
   });
 }
 

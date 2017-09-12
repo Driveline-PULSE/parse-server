@@ -110,6 +110,12 @@ function create(config, auth, className, restObject, clientSDK) {
   return write.execute();
 }
 
+function createBatch(config, auth, className, restObjects, clientSDK) {
+  enforceRoleSecurity('create', className, auth);
+  var write = new RestWriteBatch(config, auth, className, null, restObjects, null, clientSDK);
+  return write.execute();
+}
+
 // Returns a promise that contains the fields of the update that the
 // REST API is supposed to return.
 // Usually, this is just updatedAt.
@@ -146,6 +152,7 @@ function enforceRoleSecurity(method, className, auth) {
 
 module.exports = {
   create,
+  createBatch: createBatch,
   del,
   find,
   get,

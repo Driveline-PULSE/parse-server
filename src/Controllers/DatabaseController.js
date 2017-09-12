@@ -529,6 +529,43 @@ DatabaseController.prototype.create = function(className, object, { acl } = {}) 
   })
 };
 
+DatabaseController.prototype.createMultiple = function (className, objects) {
+
+  // Make a copy of the object, so we don't mutate the incoming data.
+  const originalObjects = objects;
+  objects = objects.map((object) => {
+    const o = transformObjectACL(object);
+    o.createdAt = { iso: object.createdAt, __type: 'Date' };
+    o.updatedAt = { iso: object.updatedAt, __type: 'Date' };
+    return o;
+  })
+
+  var isMaster = acl === undefined;
+  var aclGroup = acl || [];
+
+  return this.validateClassName(className).then(function () {
+    return this.loadSchema();
+  }).then(function (schemaController) {
+    return (isMaster ? Promise.resolve() : schemaController.validatePermission(className, aclGroup, 'create'))
+    .then(() => schemaController.enforceClassExists(className)})
+    .then(() => schemaController.reloadData())
+    .then(() => schemaController.getOneSchema(className, true))
+    .then((schema) => {
+      objects.forEach((object) => {
+        flattenUpdateOperatorsForCreate(object);
+      });
+      return this.adapter.createObjects(className, SchemaController.convertSchemaToAdapterSchema(schema), objects);
+    }).then((result) => {
+      console.log(result);
+      var promises = [];
+      originalObjects.forEach((originalObject, index) => {
+        promises.push(sanitizeDatabaseResult(originalObject, result.ops[index]));
+      });
+      return Promise.all(promises);
+    });
+  });
+};
+
 DatabaseController.prototype.canAddField = function(schema, className, object, aclGroup) {
   const classSchema = schema.data[className];
   if (!classSchema) {
