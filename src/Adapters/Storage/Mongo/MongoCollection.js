@@ -51,7 +51,14 @@ export default class MongoCollection {
       findOperation = findOperation.maxTimeMS(maxTimeMS);
     }
 
-    return findOperation.toArray();
+    const date = new Date();
+    return findOperation.toArray().then((results) => {
+      const d = new Date();
+      if (Logger && Logger.PARSE_QUERIES) {
+        Logger.log(Logger.PARSE_QUERIES, this._mongoCollection.s.name + ".rawFind query: " + JSON.stringify(query) + " took " + (d.getTime() - date.getTime()) + "ms");
+      }
+      return results;
+    });
   }
 
   count(query, { skip, limit, sort, maxTimeMS, readPreference } = {}) {
