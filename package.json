@@ -42,7 +42,6 @@
     "winston": "2.4.0",
     "winston-daily-rotate-file": "1.7.2",
     "ws": "4.0.0",
-    "npm-git-install": "^0.3.0",
     "babel-cli": "6.26.0",
     "babel-core": "6.26.0",
     "babel-eslint": "^8.0.0",
@@ -61,7 +60,8 @@
     "mongodb-runner": "3.6.1",
     "nodemon": "1.14.11",
     "nyc": "^11.0.2",
-    "request-promise": "4.2.2"
+    "request-promise": "4.2.2",
+    "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#master"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
@@ -109,8 +109,5 @@
     "type": "opencollective",
     "url": "https://opencollective.com/parse-server",
     "logo": "https://opencollective.com/parse-server/logo.txt?reverse=true&variant=binary"
-  },
-  "gitDependencies": {
-    "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#master"
   }
 }
