@@ -137,7 +137,7 @@ export class ClassesRouter extends PromiseRouter {
       return this.handleFind(req).then((response) => {
         if (Logger && Logger.PARSE_SERVER_ROUTER) {
           const body = Object.assign(req.body, ClassesRouter.JSONFromQuery(req.query));
-          Logger.log(Logger.PARSE_SERVER_ROUTER, '/classes/:className ' + JSON.stringify(body.where) + " took " + (new Date().getTime() - date.getTime()) + "ms");
+          Logger.log(Logger.PARSE_SERVER_ROUTER, '/classes/' + req.params.className + " " + JSON.stringify(body.where) + " took " + (new Date().getTime() - date.getTime()) + "ms");
         }
         return response;
       }); 
