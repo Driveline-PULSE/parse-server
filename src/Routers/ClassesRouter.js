@@ -132,7 +132,16 @@ export class ClassesRouter extends PromiseRouter {
   }
 
   mountRoutes() {
-    this.route('GET', '/classes/:className', (req) => { return this.handleFind(req); });
+    this.route('GET', '/classes/:className', (req) => {
+      const date = new Date();
+      return this.handleFind(req).then((response) => {
+        if (Logger && Logger.PARSE_SERVER_ROUTER) {
+          const body = Object.assign(req.body, ClassesRouter.JSONFromQuery(req.query));
+          Logger.log(Logger.PARSE_SERVER_ROUTER, '/classes/:className ' + JSON.stringify(body.where) + " took " + (new Date().getTime() - date.getTime()) + "ms");
+        }
+        return response;
+      }); 
+    });
     this.route('GET', '/classes/:className/:objectId', (req) => { return this.handleGet(req); });
     this.route('POST', '/classes/:className', (req) => { return this.handleCreate(req); });
     this.route('PUT', '/classes/:className/:objectId', (req) => { return this.handleUpdate(req); });
