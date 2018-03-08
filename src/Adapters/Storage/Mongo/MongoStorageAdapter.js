@@ -424,7 +424,7 @@ export class MongoStorageAdapter implements StorageAdapter {
       .then(collection => {
         const hrstart = process.hrtime();
         const updateOneOperation = collection._mongoCollection.findAndModify(mongoWhere, [], mongoUpdate, { new: true });
-        if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
+        if (typeof Logger !== undefined && typeof Logger.PARSE_QUERIES !== undefined) {
           return updateOneOperation.then(results => {
             const hrend = process.hrtime(hrstart);
             const ms = hrend[0] * 1000 + hrend[1] / 1000000;
