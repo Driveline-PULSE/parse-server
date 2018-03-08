@@ -56,7 +56,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return findOperationToArray.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".rawFind query: " + JSON.stringify(query) + " took " + ms + "ms");
         return results;
       });
@@ -72,7 +72,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return countOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".count query: " + JSON.stringify(query) + " took " + ms + "ms");
         return results;
       });
@@ -96,7 +96,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return insertOneOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".insertOne object: " + JSON.stringify(object) + " took " + ms + "ms");
         return results;
       });
@@ -115,7 +115,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return upsertOneOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".upsertOne query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
         return results;
       });
@@ -131,7 +131,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return updateOneOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".updateOne query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
         return results;
       });
@@ -147,7 +147,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return updateManyOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".updateMany query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
         return results;
       });
@@ -163,7 +163,7 @@ export default class MongoCollection {
     if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
       return deleteManyOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
         Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".deleteMany query: " + JSON.stringify(query) + " took " + ms + "ms");
         return results;
       });

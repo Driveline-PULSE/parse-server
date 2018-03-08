@@ -427,7 +427,7 @@ export class MongoStorageAdapter implements StorageAdapter {
         if (Logger && Logger.PARSE_QUERIES && Logger.logEnabled(Logger.PARSE_QUERIES)) {
           return updateOneOperation.then(results => {
             const hrend = process.hrtime(hrstart);
-            const ms = hrend[0] / 1000 + hrend[1] / 1000000;
+            const ms = hrend[0] * 1000 + hrend[1] / 1000000;
             Logger.log("PARSE_QUERIES", collection._mongoCollection.s.name + ".findOneAndUpdate query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
             return results;
           });
