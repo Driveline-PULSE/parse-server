@@ -97,7 +97,7 @@ export default class MongoCollection {
       return insertOneOperation.then((results) => {
         const hrend = process.hrtime(hrstart);
         const ms = hrend[0] / 1000 + hrend[1] / 1000000;
-        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".insertOne query: " + JSON.stringify(query) + " took " + ms + "ms");
+        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".insertOne object: " + JSON.stringify(object) + " took " + ms + "ms");
         return results;
       });
     }
