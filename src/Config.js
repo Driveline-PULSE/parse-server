@@ -29,7 +29,7 @@ export class Config {
     config.applicationId = applicationId;
     Object.keys(cacheInfo).forEach((key) => {
       if (key == 'databaseController') {
-        config.database = new DatabaseController(cacheInfo.databaseController.adapter, serverConfiguration.schemaController);
+        config.database = new DatabaseController(cacheInfo.databaseController.adapter, cacheInfo.schemaCache, cacheInfo.schemaController);
       } else {
         config[key] = cacheInfo[key];
       }

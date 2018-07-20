@@ -292,13 +292,16 @@ class DatabaseController {
   schemaCache: any;
   schemaPromise: ?Promise<SchemaController.SchemaController>;
 
-  constructor(adapter: StorageAdapter, schemaCache: any) {
+  constructor(adapter: StorageAdapter, schemaCache: any, schemaController: any) {
     this.adapter = adapter;
     this.schemaCache = schemaCache;
     // We don't want a mutable this.schema, because then you could have
     // one request that uses different schemas for different parts of
     // it. Instead, use loadSchema to get a schema.
     this.schemaPromise = null;
+    if (schemaController) {
+      this.schemaPromise = Promise.resolve(schemaController);
+    }
   }
 
   collectionExists(className: string): Promise<boolean> {

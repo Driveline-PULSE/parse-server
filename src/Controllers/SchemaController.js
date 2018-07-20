@@ -939,8 +939,9 @@ export default class SchemaController {
 }
 
 // Returns a promise for a new Schema.
-const load = (dbAdapter: StorageAdapter, schemaController: any, options: any): Promise<SchemaController> => {
-  return schemaController.reloadData(options).then(() => schema);
+const load = (dbAdapter: StorageAdapter, schemaCache: any, options: any): Promise<SchemaController> => {
+  const schema = new SchemaController(dbAdapter, schemaCache);
+  return schema.reloadData(options).then(() => schema);
 }
 
 // Builds a new schema (in schema API response format) out of an
