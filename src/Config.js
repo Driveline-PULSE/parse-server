@@ -5,6 +5,8 @@
 import AppCache from './cache';
 import SchemaCache from './Controllers/SchemaCache';
 import DatabaseController from './Controllers/DatabaseController';
+import SchemaController from './Controllers/SchemaController';
+
 import net from 'net';
 
 function removeTrailingSlash(str) {
