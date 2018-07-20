@@ -27,10 +27,7 @@ export class Config {
     config.applicationId = applicationId;
     Object.keys(cacheInfo).forEach((key) => {
       if (key == 'databaseController') {
-        const schemaCache = new SchemaCache(cacheInfo.cacheController,
-          cacheInfo.schemaCacheTTL,
-          cacheInfo.enableSingleSchemaCache);
-        config.database = new DatabaseController(cacheInfo.databaseController.adapter, schemaCache);
+        config.database = new DatabaseController(cacheInfo.databaseController.adapter, serverConfiguration.schemaController);
       } else {
         config[key] = cacheInfo[key];
       }
@@ -43,6 +40,12 @@ export class Config {
 
   static put(serverConfiguration) {
     Config.validate(serverConfiguration);
+
+    serverConfiguration.schemaCache = new SchemaCache(serverConfiguration.cacheController,
+      serverConfiguration.schemaCacheTTL,
+      serverConfiguration.enableSingleSchemaCache);
+    serverConfiguration.schemaController = new SchemaController(serverConfiguration.databaseController.adapter, serverConfiguration.schemaCache);
+
     AppCache.put(serverConfiguration.appId, serverConfiguration);
     Config.setupPasswordValidator(serverConfiguration.passwordPolicy);
     return serverConfiguration;
