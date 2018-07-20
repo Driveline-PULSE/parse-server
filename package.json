@@ -61,7 +61,7 @@
     "nodemon": "1.14.11",
     "nyc": "^11.0.2",
     "request-promise": "4.2.2",
-    "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#master"
+    "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#performance"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
