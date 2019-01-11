@@ -110,14 +110,14 @@ export class PublicAPIRouter extends PromiseRouter {
       return this.missingPublicServerURL();
     }
 
-    const { username, token } = req.query;
+    const { username, token, locale } = req.query;
 
     if (!username || !token) {
       return this.invalidLink(req);
     }
 
     return config.userController.checkResetTokenValidity(username, token).then(() => {
-      const params = qs.stringify({token, id: config.applicationId, username, app: config.appName, });
+      const params = qs.stringify({token, id: config.applicationId, username, app: config.appName, locale});
       return Promise.resolve({
         status: 302,
         location: `${config.choosePasswordURL}?${params}`
