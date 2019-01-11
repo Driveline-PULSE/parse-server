@@ -168,7 +168,7 @@ export class UserController extends AdaptableController {
         const token = encodeURIComponent(user._perishable_token);
         const username = encodeURIComponent(user.username);
 
-        const link = buildEmailLink(this.config.requestResetPasswordURL, username, token, this.config);
+        const link = buildEmailLink(this.config.requestResetPasswordURL, username, token, this.config, locale);
         const options = {
           appName: this.config.appName,
           link: link,
@@ -231,8 +231,8 @@ function updateUserPassword(userId, password, config) {
   });
 }
 
-function buildEmailLink(destination, username, token, config) {
-  const usernameAndToken = `token=${token}&username=${username}`
+function buildEmailLink(destination, username, token, config, locale) {
+  const usernameAndToken = `token=${token}&username=${username}&locale=${locale}`
 
   if (config.parseFrameURL) {
     const destinationWithoutHost = destination.replace(config.publicServerURL, '');
