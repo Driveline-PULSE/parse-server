@@ -234,7 +234,7 @@ export class UsersRouter extends ClassesRouter {
   handleResetRequest(req) {
     this._throwOnBadEmailConfig(req);
 
-    const { email } = req.body;
+    const { email, locale } = req.body;
     if (!email) {
       throw new Parse.Error(Parse.Error.EMAIL_MISSING, "you must provide an email");
     }
@@ -242,7 +242,7 @@ export class UsersRouter extends ClassesRouter {
       throw new Parse.Error(Parse.Error.INVALID_EMAIL_ADDRESS, 'you must provide a valid email string');
     }
     const userController = req.config.userController;
-    return userController.sendPasswordResetEmail(email).then(() => {
+    return userController.sendPasswordResetEmail(email, locale).then(() => {
       return Promise.resolve({
         response: {}
       });

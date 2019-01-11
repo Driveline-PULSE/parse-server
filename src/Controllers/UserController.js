@@ -157,7 +157,7 @@ export class UserController extends AdaptableController {
     return this.config.database.update('_User', { $or: [{email}, {username: email, email: {$exists: false}}] }, token, {}, true)
   }
 
-  sendPasswordResetEmail(email) {
+  sendPasswordResetEmail(email, locale = 'en') {
     if (!this.adapter) {
       throw "Trying to send a reset password but no adapter is set";
       //  TODO: No adapter?
@@ -173,6 +173,7 @@ export class UserController extends AdaptableController {
           appName: this.config.appName,
           link: link,
           user: inflate('_User', user),
+          locale: locale
         };
 
         if (this.adapter.sendPasswordResetEmail) {
