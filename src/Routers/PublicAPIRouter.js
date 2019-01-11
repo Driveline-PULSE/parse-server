@@ -151,13 +151,13 @@ export class PublicAPIRouter extends PromiseRouter {
     }
 
     return config.userController.updatePassword(username, token, new_password).then(() => {
-      const params = _querystring2.default.stringify({ username: username, locale: locale });
+      const params = qs.stringify({ username: username, locale: locale });
       return Promise.resolve({
         status: 302,
         location: `${config.passwordResetSuccessURL}?${params}`
       });
     }, err => {
-      const params = _querystring2.default.stringify({ username: username, token: token, id: config.applicationId, error: err, app: config.appName });
+      const params = qs.stringify({ username: username, token: token, id: config.applicationId, error: err, app: config.appName });
       return Promise.resolve({
         status: 302,
         location: `${config.choosePasswordURL}?${params}`
