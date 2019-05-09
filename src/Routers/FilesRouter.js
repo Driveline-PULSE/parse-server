@@ -34,30 +34,20 @@ export class FilesRouter {
   }
 
   getHandler(req, res) {
-    const config = Config.get(req.params.appId);
+    const config = _Config2.default.get(req.params.appId);
     const filesController = config.filesController;
     const filename = req.params.filename;
-    const contentType = mime.getType(filename);
-    if (isFileStreamable(req, filesController)) {
-      filesController.getFileStream(config, filename).then((stream) => {
-        handleFileStream(stream, req, res, contentType);
-      }).catch(() => {
-        res.status(404);
-        res.set('Content-Type', 'text/plain');
-        res.end('File not found.');
-      });
-    } else {
-      filesController.getFileData(config, filename).then((data) => {
-        res.status(200);
-        res.set('Content-Type', contentType);
-        res.set('Content-Length', data.length);
-        res.end(data);
-      }).catch(() => {
-        res.status(404);
-        res.set('Content-Type', 'text/plain');
-        res.end('File not found.');
-      });
-    }
+    const contentType = _mime2.default.getType(filename);
+
+    filesController.getFileStream(config, filename).then(stream => {
+      res.status(200);
+      res.set('Content-Type', contentType);
+      stream.pipe(res);
+    }).catch(() => {
+      res.status(404);
+      res.set('Content-Type', 'text/plain');
+      res.end('File not found.');
+    });
   }
 
   createHandler(req, res, next) {
