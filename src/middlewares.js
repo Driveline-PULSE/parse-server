@@ -4,6 +4,7 @@ import Parse from 'parse/node';
 import auth from './Auth';
 import Config from './Config';
 import ClientSDK from './ClientSDK';
+const sanitize = require('mongo-sanitize');
 
 // Checks that the request is authorized for this app and checks user
 // auth too.
@@ -80,7 +81,7 @@ export function handleParseHeaders(req, res, next) {
         delete req.body._InstallationId;
       }
       if (req.body._SessionToken) {
-        info.sessionToken = req.body._SessionToken;
+        info.sessionToken = sanitize(req.body._SessionToken);
         delete req.body._SessionToken;
       }
       if (req.body._MasterKey) {
