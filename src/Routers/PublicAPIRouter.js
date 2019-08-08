@@ -122,7 +122,7 @@ export class PublicAPIRouter extends PromiseRouter {
       return this.missingPublicServerURL();
     }
 
-    const { username, token } = req.query;
+    const { username, token, locale } = req.query;
 
     if (!username || !token) {
       return this.invalidLink(req);
@@ -135,6 +135,7 @@ export class PublicAPIRouter extends PromiseRouter {
           id: config.applicationId,
           username,
           app: config.appName,
+          locale
         });
         return Promise.resolve({
           status: 302,
@@ -158,7 +159,7 @@ export class PublicAPIRouter extends PromiseRouter {
       return this.missingPublicServerURL();
     }
 
-    const { username, token, new_password } = req.body;
+    const { username, token, new_password, locale } = req.body;
 
     if ((!username || !token || !new_password) && req.xhr === false) {
       return this.invalidLink(req);
@@ -198,6 +199,7 @@ export class PublicAPIRouter extends PromiseRouter {
           id: config.applicationId,
           error: result.err,
           app: config.appName,
+          locale: locale
         });
 
         if (req.xhr) {
@@ -224,6 +226,8 @@ export class PublicAPIRouter extends PromiseRouter {
   }
 
   invalidLink(req) {
+    const locale = req.query.locale || req.body.locale;
+    const params = qs.stringify({ locale: locale });
     return Promise.resolve({
       status: 302,
       location: req.config.invalidLinkURL,

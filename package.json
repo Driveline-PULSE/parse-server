@@ -43,8 +43,8 @@
     "mime": "2.4.4",
     "mongodb": "3.2.7",
     "node-rsa": "1.0.5",
-    "parse": "2.6.0",
     "pg-promise": "9.0.0",
+    "multer": "1.3.0",
     "redis": "2.8.0",
     "semver": "6.3.0",
     "subscriptions-transport-ws": "0.9.16",
@@ -52,7 +52,9 @@
     "uuid": "3.3.2",
     "winston": "3.2.1",
     "winston-daily-rotate-file": "3.10.0",
-    "ws": "7.1.1"
+    "ws": "7.1.1",
+    "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#v2.0.2-motus",
+    "mongo-sanitize": "^1.0.1"
   },
   "devDependencies": {
     "@babel/cli": "7.5.5",
@@ -99,7 +101,8 @@
     "coverage": "cross-env MONGODB_VERSION=${MONGODB_VERSION:=4.0.4} MONGODB_STORAGE_ENGINE=mmapv1 TESTING=1 nyc jasmine",
     "start": "node ./bin/parse-server",
     "prepare": "npm run build",
-    "postinstall": "node -p 'require(\"./postinstall.js\")()'"
+    "postinstall": "node -p 'require(\"./postinstall.js\")()'",
+    "prepublish": "npm run build"
   },
   "engines": {
     "node": ">= 8"

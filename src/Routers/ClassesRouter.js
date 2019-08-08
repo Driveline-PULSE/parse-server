@@ -224,7 +224,14 @@ export class ClassesRouter extends PromiseRouter {
 
   mountRoutes() {
     this.route('GET', '/classes/:className', req => {
-      return this.handleFind(req);
+        const date = new Date();
+        return this.handleFind(req).then((response) => {
+            if (typeof Logger !== 'undefined' && typeof Logger.PARSE_SERVER_ROUTER !== 'undefined') {
+                const body = Object.assign(req.body, ClassesRouter.JSONFromQuery(req.query));
+                Logger.log(Logger.PARSE_SERVER_ROUTER, '/classes/' + req.params.className + " " + JSON.stringify(body.where) + " took " + (new Date().getTime() - date.getTime()) + "ms");
+            }
+            return response;
+        });
     });
     this.route('GET', '/classes/:className/:objectId', req => {
       return this.handleGet(req);

