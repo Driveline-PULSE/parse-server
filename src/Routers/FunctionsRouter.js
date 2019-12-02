@@ -129,15 +129,16 @@ export class FunctionsRouter extends PromiseRouter {
         const cleanInput = logger.truncateLogMessage(JSON.stringify(params));
         var response = FunctionsRouter.createResponseObject((result) => {
           try {
-            const cleanResult = logger.truncateLogMessage(JSON.stringify(result.response.result));
-            logger.info(
-              `Ran cloud function ${functionName} for user ${userString} with:\n  Input: ${cleanInput }\n  Result: ${cleanResult }`,
-              {
-                functionName,
-                params,
-                user: userString,
-              }
-            );
+            // Commented out because certain function results were so large that JSON.stringify would result in out-of-memory crash, even if the log level is set to warn
+//             const cleanResult = logger.truncateLogMessage(JSON.stringify(result.response.result));
+//             logger.info(
+//               `Ran cloud function ${functionName} for user ${userString} with:\n  Input: ${cleanInput }\n  Result: ${cleanResult }`,
+//               {
+//                 functionName,
+//                 params,
+//                 user: userString,
+//               }
+//             );
             resolve(result);
           } catch (e) {
             reject(e);
