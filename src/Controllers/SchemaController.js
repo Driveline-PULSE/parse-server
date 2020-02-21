@@ -145,7 +145,7 @@ const requiredColumns = Object.freeze({
 
 const systemClasses = Object.freeze(['_User', '_Installation', '_Role', '_Session', '_Product', '_PushStatus', '_JobStatus', '_JobSchedule', '_Audience']);
 
-const volatileClasses = Object.freeze(['_JobStatus', '_PushStatus', '_Hooks', '_GlobalConfig', '_JobSchedule', '_Audience']);
+const volatileClasses = Object.freeze(['_JobStatus', '_PushStatus', '_Hooks', '_GlobalConfig', '_JobSchedule'/*, '_Audience'*/]);
 
 // 10 alpha numberic chars + uppercase
 const userIdRegex = /^[a-zA-Z0-9]{10}$/;
