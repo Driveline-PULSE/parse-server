@@ -53,11 +53,6 @@ export class Config {
   static put(serverConfiguration) {
     Config.validate(serverConfiguration);
 
-    serverConfiguration.schemaCache = new SchemaCache(serverConfiguration.cacheController,
-      serverConfiguration.schemaCacheTTL,
-      serverConfiguration.enableSingleSchemaCache);
-    serverConfiguration.schemaController = new SchemaController(serverConfiguration.databaseController.adapter, serverConfiguration.schemaCache);
-
     AppCache.put(serverConfiguration.appId, serverConfiguration);
     Config.setupPasswordValidator(serverConfiguration.passwordPolicy);
     return serverConfiguration;
