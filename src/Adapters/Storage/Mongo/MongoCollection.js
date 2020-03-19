@@ -13,7 +13,20 @@ export default class MongoCollection {
   // none, then build the geoindex.
   // This could be improved a lot but it's not clear if that's a good
   // idea. Or even if this behavior is a good idea.
-  find(query, { skip, limit, sort, keys, maxTimeMS, readPreference } = {}) {
+  find(
+    query,
+    {
+      skip,
+      limit,
+      sort,
+      keys,
+      maxTimeMS,
+      readPreference,
+      hint,
+      caseInsensitive,
+      explain,
+    } = {}
+  ) {
     // Support for Full Text Search - $text
     if (keys && keys.$score) {
       delete keys.$score;
@@ -26,6 +39,9 @@ export default class MongoCollection {
       keys,
       maxTimeMS,
       readPreference,
+      hint,
+      caseInsensitive,
+      explain,
     }).catch(error => {
       // Check for "no geoindex" error
       if (
@@ -54,46 +70,62 @@ export default class MongoCollection {
               keys,
               maxTimeMS,
               readPreference,
+              hint,
+              caseInsensitive,
+              explain,
             })
           )
       );
     });
   }
 
-  _rawFind(query, { skip, limit, sort, keys, maxTimeMS, readPreference } = {}) {
+  /**
+   * Collation to support case insensitive queries
+   */
+  static caseInsensitiveCollation() {
+    return { locale: 'en_US', strength: 2 };
+  }
+
+  _rawFind(
+    query,
+    {
+      skip,
+      limit,
+      sort,
+      keys,
+      maxTimeMS,
+      readPreference,
+      hint,
+      caseInsensitive,
+      explain,
+    } = {}
+  ) {
     let findOperation = this._mongoCollection.find(query, {
       skip,
       limit,
       sort,
       readPreference,
+      hint,
     });
 
     if (keys) {
       findOperation = findOperation.project(keys);
     }
 
+    if (caseInsensitive) {
+      findOperation = findOperation.collation(
+        MongoCollection.caseInsensitiveCollation()
+      );
+    }
+
     if (maxTimeMS) {
       findOperation = findOperation.maxTimeMS(maxTimeMS);
     }
 
-    const hrstart = process.hrtime();
-    const findOperationToArray = findOperation.toArray();
-    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
-      return findOperationToArray.then((results) => {
-        const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
-        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".rawFind query: " + JSON.stringify(query) + " took " + ms + "ms");
-        return results;
-      });
-    }
-    else {
-      return findOperationToArray;
-    }
+    return explain ? findOperation.explain(explain) : findOperation.toArray();
   }
 
-  count(query, { skip, limit, sort, maxTimeMS, readPreference } = {}) {
-      const hrstart = process.hrtime();
-      var countOperation;
+  count(query, { skip, limit, sort, maxTimeMS, readPreference, hint } = {}) {
     // If query is empty, then use estimatedDocumentCount instead.
     // This is due to countDocuments performing a scan,
     // which greatly increases execution time when being run on large collections.
@@ -103,72 +135,41 @@ export default class MongoCollection {
         maxTimeMS,
       });
     }
-    else {
-        countOperation = this._mongoCollection.countDocuments(query, {
-                                                              skip,
-                                                              limit,
-                                                              sort,
-                                                              maxTimeMS,
-                                                              readPreference,
-                                                              });
-    }
 
-    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
-        return countOperation.then((results) => {
-            const hrend = process.hrtime(hrstart);
-                const ms = hrend[0] * 1000 + hrend[1] / 1000000;
-                Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".count query: " + JSON.stringify(query) + " took " + ms + "ms");
-                return results;
-            });
-      }
-      else {
-          return countOperation;
-      }
+    const countOperation = this._mongoCollection.countDocuments(query, {
+      skip,
+      limit,
+      sort,
+      maxTimeMS,
+      readPreference,
+      hint,
+    });
+
+    return countOperation;
   }
 
   distinct(field, query) {
     return this._mongoCollection.distinct(field, query);
   }
 
-  aggregate(pipeline, { maxTimeMS, readPreference } = {}) {
+  aggregate(pipeline, { maxTimeMS, readPreference, hint, explain } = {}) {
     return this._mongoCollection
-      .aggregate(pipeline, { maxTimeMS, readPreference })
+      .aggregate(pipeline, { maxTimeMS, readPreference, hint, explain })
       .toArray();
   }
 
-  insertOne(object) {
-    const hrstart = process.hrtime();
-    const insertOneOperation = this._mongoCollection.insertOne(object);
-    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
-      return insertOneOperation.then((results) => {
-        const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
-        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".insertOne object: " + JSON.stringify(object) + " took " + ms + "ms");
-        return results;
-      });
-    }
-    else {
-      return insertOneOperation;
-    }
+  insertOne(object, session) {
+    return this._mongoCollection.insertOne(object, { session });
   }
 
   // Atomically updates data in the database for a single (first) object that matched the query
   // If there is nothing that matches the query - does insert
   // Postgres Note: `INSERT ... ON CONFLICT UPDATE` that is available since 9.5.
-  upsertOne(query, update) {
-    const hrstart = process.hrtime();
-    const upsertOneOperation = this._mongoCollection.updateOne(query, update, { upsert: true });
-    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
-      return upsertOneOperation.then((results) => {
-        const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
-        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".upsertOne query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
-        return results;
-      });
-    }
-    else {
-      return upsertOneOperation;
-    }
+  upsertOne(query, update, session) {
+    return this._mongoCollection.updateOne(query, update, {
+      upsert: true,
+      session,
+    });
   }
 
   updateOne(query, update) {
@@ -187,36 +188,12 @@ export default class MongoCollection {
     }
   }
 
-  updateMany(query, update) {
-    const hrstart = process.hrtime();
-    const updateManyOperation = this._mongoCollection.updateMany(query, update);
-    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
-      return updateManyOperation.then((results) => {
-        const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
-        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".updateMany query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
-        return results;
-      });
-    }
-    else {
-      return updateManyOperation;
-    }
+  updateMany(query, update, session) {
+    return this._mongoCollection.updateMany(query, update, { session });
   }
 
-  deleteMany(query) {
-    const hrstart = process.hrtime();
-    const deleteManyOperation = this._mongoCollection.deleteMany(query);
-    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
-      return deleteManyOperation.then((results) => {
-        const hrend = process.hrtime(hrstart);
-        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
-        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".deleteMany query: " + JSON.stringify(query) + " took " + ms + "ms");
-        return results;
-      });
-    }
-    else {
-      return deleteManyOperation;
-    }
+  deleteMany(query, session) {
+    return this._mongoCollection.deleteMany(query, { session });
   }
 
   _ensureSparseUniqueIndexInBackground(indexRequest) {

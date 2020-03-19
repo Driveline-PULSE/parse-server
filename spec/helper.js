@@ -18,6 +18,7 @@ if (global._babelPolyfill) {
   console.error('We should not use polyfilled tests');
   process.exit(1);
 }
+process.noDeprecation = true;
 
 const cache = require('../lib/cache').default;
 const ParseServer = require('../lib/index').ParseServer;
@@ -40,20 +41,12 @@ const postgresURI =
 let databaseAdapter;
 // need to bind for mocking mocha
 
-let startDB = () => {};
-let stopDB = () => {};
-
 if (process.env.PARSE_SERVER_TEST_DB === 'postgres') {
   databaseAdapter = new PostgresStorageAdapter({
     uri: process.env.PARSE_SERVER_TEST_DATABASE_URI || postgresURI,
     collectionPrefix: 'test_',
   });
 } else {
-  startDB = require('mongodb-runner/mocha/before').bind({
-    timeout: () => {},
-    slow: () => {},
-  });
-  stopDB = require('mongodb-runner/mocha/after');
   databaseAdapter = new MongoStorageAdapter({
     uri: mongoURI,
     collectionPrefix: 'test_',
@@ -177,11 +170,6 @@ const reconfigureServer = changedConfiguration => {
 const Parse = require('parse/node');
 Parse.serverURL = 'http://localhost:' + port + '/1';
 
-// 10 minutes timeout
-beforeAll(startDB, 10 * 60 * 1000);
-
-afterAll(stopDB);
-
 beforeEach(done => {
   try {
     Parse.User.enableUnsafeCurrentUser();
@@ -219,13 +207,7 @@ afterEach(function(done) {
         'There were open connections to the server left after the test finished'
       );
     }
-    on_db(
-      'postgres',
-      () => {
-        TestUtils.destroyAllDataPermanently(true).then(done, done);
-      },
-      done
-    );
+    TestUtils.destroyAllDataPermanently(true).then(done, done);
   };
   Parse.Cloud._removeAllHooks();
   databaseAdapter
@@ -256,7 +238,10 @@ afterEach(function(done) {
       });
     })
     .then(() => Parse.User.logOut())
-    .then(() => {}, () => {}) // swallow errors
+    .then(
+      () => {},
+      () => {}
+    ) // swallow errors
     .then(() => {
       // Connection close events are not immediate on node 10+... wait a bit
       return new Promise(resolve => {
@@ -417,6 +402,7 @@ global.reconfigureServer = reconfigureServer;
 global.defaultConfiguration = defaultConfiguration;
 global.mockCustomAuthenticator = mockCustomAuthenticator;
 global.mockFacebookAuthenticator = mockFacebookAuthenticator;
+global.databaseAdapter = databaseAdapter;
 global.jfail = function(err) {
   fail(JSON.stringify(err));
 };

@@ -426,6 +426,44 @@ describe('SchemaController', () => {
     });
   });
 
+  it('can update class level permission', done => {
+    const newLevelPermissions = {
+      find: {},
+      get: { '*': true },
+      count: {},
+      create: { '*': true },
+      update: {},
+      delete: { '*': true },
+      addField: {},
+      protectedFields: { '*': [] },
+    };
+    config.database.loadSchema().then(schema => {
+      schema
+        .validateObject('NewClass', { foo: 2 })
+        .then(() => schema.reloadData())
+        .then(() =>
+          schema.updateClass(
+            'NewClass',
+            {},
+            newLevelPermissions,
+            {},
+            config.database
+          )
+        )
+        .then(actualSchema => {
+          expect(
+            dd(actualSchema.classLevelPermissions, newLevelPermissions)
+          ).toEqual(undefined);
+          done();
+        })
+        .catch(error => {
+          console.trace(error);
+          done();
+          fail('Error creating class: ' + JSON.stringify(error));
+        });
+    });
+  });
+
   it('will fail to create a class if that class was already created by an object', done => {
     config.database.loadSchema().then(schema => {
       schema
@@ -1344,19 +1382,29 @@ describe('SchemaController', () => {
 
   it('properly handles volatile _Schemas', done => {
     function validateSchemaStructure(schema) {
-      expect(schema.hasOwnProperty('className')).toBe(true);
-      expect(schema.hasOwnProperty('fields')).toBe(true);
-      expect(schema.hasOwnProperty('classLevelPermissions')).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(schema, 'className')).toBe(
+        true
+      );
+      expect(Object.prototype.hasOwnProperty.call(schema, 'fields')).toBe(true);
+      expect(
+        Object.prototype.hasOwnProperty.call(schema, 'classLevelPermissions')
+      ).toBe(true);
     }
     function validateSchemaDataStructure(schemaData) {
       Object.keys(schemaData).forEach(className => {
         const schema = schemaData[className];
         // Hooks has className...
         if (className != '_Hooks') {
-          expect(schema.hasOwnProperty('className')).toBe(false);
+          expect(
+            Object.prototype.hasOwnProperty.call(schema, 'className')
+          ).toBe(false);
         }
-        expect(schema.hasOwnProperty('fields')).toBe(false);
-        expect(schema.hasOwnProperty('classLevelPermissions')).toBe(false);
+        expect(Object.prototype.hasOwnProperty.call(schema, 'fields')).toBe(
+          false
+        );
+        expect(
+          Object.prototype.hasOwnProperty.call(schema, 'classLevelPermissions')
+        ).toBe(false);
       });
     }
     let schema;
@@ -1617,7 +1665,7 @@ describe('Class Level Permissions for requiredAuth', () => {
       );
   });
 
-  it('required auth test create/get/update/delete not authenitcated', done => {
+  it('required auth test get not authenticated', done => {
     config.database
       .loadSchema()
       .then(schema => {
@@ -1627,12 +1675,6 @@ describe('Class Level Permissions for requiredAuth', () => {
       .then(schema => {
         return schema.setPermissions('Stuff', {
           get: {
-            requiresAuthentication: true,
-          },
-          delete: {
-            requiresAuthentication: true,
-          },
-          update: {
             requiresAuthentication: true,
           },
           create: {
@@ -1662,7 +1704,7 @@ describe('Class Level Permissions for requiredAuth', () => {
       );
   });
 
-  it('required auth test create/get/update/delete not authenitcated', done => {
+  it('required auth test find not authenticated', done => {
     config.database
       .loadSchema()
       .then(schema => {
@@ -1672,12 +1714,6 @@ describe('Class Level Permissions for requiredAuth', () => {
       .then(schema => {
         return schema.setPermissions('Stuff', {
           find: {
-            requiresAuthentication: true,
-          },
-          delete: {
-            requiresAuthentication: true,
-          },
-          update: {
             requiresAuthentication: true,
           },
           create: {

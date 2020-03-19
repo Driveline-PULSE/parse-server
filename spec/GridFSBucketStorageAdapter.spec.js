@@ -18,7 +18,7 @@ describe('GridFSBucket and GridStore interop', () => {
   beforeEach(async () => {
     const gsAdapter = new GridStoreAdapter(databaseURI);
     const db = await gsAdapter._connect();
-    db.dropDatabase();
+    await db.dropDatabase();
   });
 
   it('a file created in GridStore should be available in GridFS', async () => {
@@ -59,5 +59,22 @@ describe('GridFSBucket and GridStore interop', () => {
     expect(documents.length).toBe(2);
     await gfsAdapter.deleteFile('myFileName');
     await expectMissingFile(gfsAdapter, 'myFileName');
+  });
+
+  it('handleShutdown, close connection', async () => {
+    const databaseURI = 'mongodb://localhost:27017/parse';
+    const gfsAdapter = new GridFSBucketAdapter(databaseURI);
+
+    const db = await gfsAdapter._connect();
+    const status = await db.admin().serverStatus();
+    expect(status.connections.current > 0).toEqual(true);
+
+    await gfsAdapter.handleShutdown();
+    try {
+      await db.admin().serverStatus();
+      expect(false).toBe(true);
+    } catch (e) {
+      expect(e.message).toEqual('topology was destroyed');
+    }
   });
 });

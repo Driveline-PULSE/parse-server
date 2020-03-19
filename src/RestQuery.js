@@ -24,7 +24,8 @@ function RestQuery(
   className,
   restWhere = {},
   restOptions = {},
-  clientSDK
+  clientSDK,
+  runAfterFind = true
 ) {
   this.config = config;
   this.auth = auth;
@@ -32,6 +33,7 @@ function RestQuery(
   this.restWhere = restWhere;
   this.restOptions = restOptions;
   this.clientSDK = clientSDK;
+  this.runAfterFind = runAfterFind;
   this.response = null;
   this.findOptions = {};
 
@@ -71,7 +73,7 @@ function RestQuery(
 
   // If we have keys, we probably want to force some includes (n-1 level)
   // See issue: https://github.com/parse-community/parse-server/issues/3185
-  if (restOptions.hasOwnProperty('keys')) {
+  if (Object.prototype.hasOwnProperty.call(restOptions, 'keys')) {
     const keysForInclude = restOptions.keys
       .split(',')
       .filter(key => {
@@ -116,6 +118,8 @@ function RestQuery(
       case 'includeAll':
         this.includeAll = true;
         break;
+      case 'explain':
+      case 'hint':
       case 'distinct':
       case 'pipeline':
       case 'skip':
@@ -455,10 +459,18 @@ RestQuery.prototype.replaceNotInQuery = function() {
   });
 };
 
+// Used to get the deepest object from json using dot notation.
+const getDeepestObjectFromKey = (json, key, idx, src) => {
+  if (key in json) {
+    return json[key];
+  }
+  src.splice(1); // Exit Early
+};
+
 const transformSelect = (selectObject, key, objects) => {
   var values = [];
   for (var result of objects) {
-    values.push(key.split('.').reduce((o, i) => o[i], result));
+    values.push(key.split('.').reduce(getDeepestObjectFromKey, result));
   }
   delete selectObject['$select'];
   if (Array.isArray(selectObject['$in'])) {
@@ -523,7 +535,7 @@ RestQuery.prototype.replaceSelect = function() {
 const transformDontSelect = (dontSelectObject, key, objects) => {
   var values = [];
   for (var result of objects) {
-    values.push(key.split('.').reduce((o, i) => o[i], result));
+    values.push(key.split('.').reduce(getDeepestObjectFromKey, result));
   }
   delete dontSelectObject['$dontSelect'];
   if (Array.isArray(dontSelectObject['$nin'])) {
@@ -764,6 +776,9 @@ RestQuery.prototype.handleInclude = function() {
 //Returns a promise of a processed set of results
 RestQuery.prototype.runAfterFindTrigger = function() {
   if (!this.response) {
+    return;
+  }
+  if (!this.runAfterFind) {
     return;
   }
   // Avoid doing any setup for triggers if there is no 'afterFind' trigger for this class.

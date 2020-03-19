@@ -293,7 +293,9 @@ describe('ParseLiveQueryServer', function() {
     parseLiveQueryServer._validateKeys = jasmine
       .createSpy('validateKeys')
       .and.returnValue(true);
-    parseLiveQueryServer._handleConnect(parseWebSocket);
+    parseLiveQueryServer._handleConnect(parseWebSocket, {
+      sessionToken: 'token',
+    });
 
     const clientKeys = parseLiveQueryServer.clients.keys();
     expect(parseLiveQueryServer.clients.size).toBe(1);
@@ -514,6 +516,7 @@ describe('ParseLiveQueryServer', function() {
     const connectRequest = {
       op: 'connect',
       applicationId: '1',
+      installationId: '1234',
     };
     // Trigger message event
     parseWebSocket.emit('message', connectRequest);

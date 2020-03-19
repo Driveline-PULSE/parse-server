@@ -13,7 +13,7 @@ describe_only_db('mongo')('GridStoreAdapter', () => {
     const config = Config.get(Parse.applicationId);
     const gridStoreAdapter = new GridStoreAdapter(databaseURI);
     const db = await gridStoreAdapter._connect();
-    db.dropDatabase();
+    await db.dropDatabase();
     const filesController = new FilesController(
       gridStoreAdapter,
       Parse.applicationId,
@@ -95,5 +95,22 @@ describe_only_db('mongo')('GridStoreAdapter', () => {
         done();
       })
       .catch(fail);
+  });
+
+  it('handleShutdown, close connection', async () => {
+    const databaseURI = 'mongodb://localhost:27017/parse';
+    const gridStoreAdapter = new GridStoreAdapter(databaseURI);
+
+    const db = await gridStoreAdapter._connect();
+    const status = await db.admin().serverStatus();
+    expect(status.connections.current > 0).toEqual(true);
+
+    await gridStoreAdapter.handleShutdown();
+    try {
+      await db.admin().serverStatus();
+      expect(false).toBe(true);
+    } catch (e) {
+      expect(e.message).toEqual('topology was destroyed');
+    }
   });
 });

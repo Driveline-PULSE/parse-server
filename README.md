@@ -1,23 +1,45 @@
-![Parse Server logo](https://github.com/parse-community/parse-server/raw/master/.github/parse-server-logo.png)
+<p align="center">
+    <img alt="Parse Server" src="https://github.com/parse-community/parse-server/raw/master/.github/parse-server-logo.png" width="500">
+  </a>
+</p>
 
-[![Backers on Open Collective](https://opencollective.com/parse-server/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/parse-server/sponsors/badge.svg)](#sponsors)
-[![Build Status](https://img.shields.io/travis/parse-community/parse-server/master.svg?style=flat)](https://travis-ci.org/parse-community/parse-server)
-[![Coverage Status](https://img.shields.io/codecov/c/github/parse-community/parse-server/master.svg)](https://codecov.io/github/parse-community/parse-server?branch=master)
-[![npm version](https://img.shields.io/npm/v/parse-server.svg?style=flat)](https://www.npmjs.com/package/parse-server)
-[![Join The Conversation](https://img.shields.io/discourse/https/community.parseplatform.org/topics.svg)](https://community.parseplatform.org/c/parse-server)
-[![Greenkeeper badge](https://badges.greenkeeper.io/parse-community/parse-server.svg)](https://greenkeeper.io/)
-[![Twitter Follow](https://img.shields.io/twitter/follow/ParsePlatform.svg?label=Follow%20us%20on%20Twitter&style=social)](https://twitter.com/intent/follow?screen_name=ParsePlatform)
+<p align="center">
+  Parse Server is an open source backend that can be deployed to any infrastructure that can run Node.js.
+</p>
 
-[![](https://img.shields.io/badge/mongodb-3.2-green.svg?logo=mongodb&style=flat)]()
-[![](https://img.shields.io/badge/mongodb-3.4-green.svg?logo=mongodb&style=flat)]()
-[![](https://img.shields.io/badge/mongodb-3.6-green.svg?logo=mongodb&style=flat)]()
-[![](https://img.shields.io/badge/mongodb-4.0-green.svg?logo=mongodb&style=flat)]()
 
-Parse Server is an [open source version of the Parse backend](http://blog.parseplatform.org/announcements/introducing-parse-server-and-the-database-migration-tool/) that can be deployed to any infrastructure that can run Node.js.
+<p align="center">
+    <a href="https://twitter.com/intent/follow?screen_name=parseplatform"><img alt="Follow on Twitter" src="https://img.shields.io/twitter/follow/parseplatform?style=social&label=Follow"></a>
+  <a href="https://travis-ci.org/parse-community/parse-server"><img alt="Build status" src="https://img.shields.io/travis/parse-community/parse-server/master.svg?style=flat"></a>
+    <a href="https://codecov.io/github/parse-community/parse-server?branch=master"><img alt="Coverage status" src="https://img.shields.io/codecov/c/github/parse-community/parse-server/master.svg"></a>
+    <a href="https://www.npmjs.com/package/parse-server"><img alt="npm version" src="https://img.shields.io/npm/v/parse-server.svg?style=flat"></a>
+    <a href="https://community.parseplatform.org/"><img alt="Join the conversation" src="https://img.shields.io/discourse/https/community.parseplatform.org/topics.svg"></a>
+    <a href="https://greenkeeper.io/"><img alt="Greenkeeper badge" src="https://badges.greenkeeper.io/parse-community/parse-server.svg"></a>
+</p>
+
+<p align="center">
+    <img alt="MongoDB 3.6" src="https://img.shields.io/badge/mongodb-3.6-green.svg?logo=mongodb&style=flat">
+    <img alt="MongoDB 4.0" src="https://img.shields.io/badge/mongodb-4.0-green.svg?logo=mongodb&style=flat">
+</p>
+
+<h2 align="center">Our Sponsors</h2>
+<p align="center">
+    <p align="center">Our backers and sponsors help to ensure the quality and timely development of the Parse Platform.</p>
+  <details align="center">
+  <summary align="center"><b>🥉 Bronze Sponsors</b></summary>
+  <a href="https://opencollective.com/parse-server/sponsor/0/website" target="_blank"><img src="https://opencollective.com/parse-server/sponsor/0/avatar.svg"></a>
+  </details>
+
+</p>
+<p align="center">
+  <a href="#backers"><img alt="Backers on Open Collective" src="https://opencollective.com/parse-server/backers/badge.svg" /></a>
+  <a href="#sponsors"><img alt="Sponsors on Open Collective" src="https://opencollective.com/parse-server/sponsors/badge.svg" /></a>
+</p>
+<br>
 
 Parse Server works with the Express web application framework. It can be added to existing web applications, or run by itself.
 
-The full documentation for Parse Server is available in the [wiki](https://github.com/parse-community/parse-server/wiki). The [Parse Server guide](http://docs.parseplatform.org/parse-server/guide/) is a good place to get started. An [API reference](http://parseplatform.org/parse-server/api/) is also available. If you're interested in developing for Parse Server, the [Development guide](http://docs.parseplatform.org/parse-server/guide/#development-guide) will help you get set up.
+The full documentation for Parse Server is available in the [wiki](https://github.com/parse-community/parse-server/wiki). The [Parse Server guide](http://docs.parseplatform.org/parse-server/guide/) is a good place to get started. An [API reference](http://parseplatform.org/parse-server/api/) and [Cloud Code guide](https://docs.parseplatform.org/cloudcode/guide/) are also available. If you're interested in developing for Parse Server, the [Development guide](http://docs.parseplatform.org/parse-server/guide/#development-guide) will help you get set up.
 
 - [Getting Started](#getting-started)
     - [Running Parse Server](#running-parse-server)
@@ -38,7 +60,7 @@ The full documentation for Parse Server is available in the [wiki](https://githu
         - [Configuring File Adapters](#configuring-file-adapters)
         - [Logging](#logging)
 - [Live Queries](#live-queries)
-- [GraphQL](#graphql)
+- [GraphQL (beta)](#graphql-beta)
 - [Upgrading to 3.0.0](#upgrading-to-300)
 - [Support](#support)
 - [Ride the Bleeding Edge](#want-to-ride-the-bleeding-edge)
@@ -54,8 +76,14 @@ The fastest and easiest way to get started is to run MongoDB and Parse Server lo
 
 ## Running Parse Server
 
+Before you start make sure you have installed:
+
+- [NodeJS](https://www.npmjs.com/) that includes `npm`
+- [MongoDB](https://www.mongodb.com/) or [PostgreSQL](https://www.postgresql.org/)
+- Optionally [Docker](https://www.docker.com/)
+
 ### Locally
-```
+```bash
 $ npm install -g parse-server mongodb-runner
 $ mongodb-runner start
 $ parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://localhost/test
@@ -64,12 +92,12 @@ $ parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongo
 
 
 ### Inside a Docker container
-```
+```bash
 $ git clone https://github.com/parse-community/parse-server
 $ cd parse-server
 $ docker build --tag parse-server .
 $ docker run --name my-mongo -d mongo
-$ docker run --name my-parse-server --link my-mongo:mongo -d parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://mongo/test
+$ docker run --name my-parse-server -v cloud-code-vol:/parse-server/cloud -v config-vol:/parse-server/config -p 1337:1337 --link my-mongo:mongo -d parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://mongo/test
 ```
 
 You can use any arbitrary string as your application id and master key. These will be used by your clients to authenticate with the Parse Server.
@@ -83,7 +111,7 @@ That's it! You are now running a standalone version of Parse Server on your mach
 Now that you're running Parse Server, it is time to save your first object. We'll use the [REST API](http://docs.parseplatform.org/rest/guide), but you can easily do the same using any of the [Parse SDKs](http://parseplatform.org/#sdks). Run the following:
 
 ```bash
-curl -X POST \
+$ curl -X POST \
 -H "X-Parse-Application-Id: APPLICATION_ID" \
 -H "Content-Type: application/json" \
 -d '{"score":1337,"playerName":"Sean Plott","cheatMode":false}' \
@@ -120,7 +148,7 @@ $ curl -X GET \
 
 Keeping tracks of individual object ids is not ideal, however. In most cases you will want to run a query over the collection, like so:
 
-```
+```bash
 $ curl -X GET \
   -H "X-Parse-Application-Id: APPLICATION_ID" \
   http://localhost:1337/parse/classes/GameScore
@@ -307,8 +335,8 @@ It’s possible to change the default pages of the app and redirect the user to 
 ```js
 var server = ParseServer({
   ...otherOptions,
-  
-  customPages {
+
+  customPages: {
     passwordResetSuccess: "http://yourapp.com/passwordResetSuccess",
     verifyEmailSuccess: "http://yourapp.com/verifyEmailSuccess",
     parseFrameURL: "http://yourapp.com/parseFrameURL",
@@ -382,9 +410,11 @@ Live queries are meant to be used in real-time reactive applications, where just
 
 Take a look at [Live Query Guide](https://docs.parseplatform.org/parse-server/guide/#live-queries), [Live Query Server Setup Guide](https://docs.parseplatform.org/parse-server/guide/#scalability) and [Live Query Protocol Specification](https://github.com/parse-community/parse-server/wiki/Parse-LiveQuery-Protocol-Specification). You can setup a standalone server or multiple instances for scalability (recommended).
 
-# GraphQL
+# GraphQL (beta)
 
 [GraphQL](https://graphql.org/), developed by Facebook, is an open-source data query and manipulation language for APIs. In addition to the traditional REST API, Parse Server automatically generates a GraphQL API based on your current application schema. Parse Server also allows you to define your custom GraphQL queries and mutations, whose resolvers can be bound to your cloud code functions.
+
+⚠️ The Parse GraphQL ```beta``` implementation is fully functional but discussions are taking place on how to improve it. So new versions of Parse Server can bring breaking changes to the current API.
 
 ## Running
 
@@ -392,10 +422,10 @@ Take a look at [Live Query Guide](https://docs.parseplatform.org/parse-server/gu
 
 The easiest way to run the Parse GraphQL API is through the CLI:
 
-```
+```bash
 $ npm install -g parse-server mongodb-runner
 $ mongodb-runner start
-$ parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://localhost/test --mountGraphQL --mountPlayground
+$ parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://localhost/test --publicServerURL http://localhost:1337/parse --mountGraphQL --mountPlayground
 ```
 
 After starting the server, you can visit http://localhost:1337/playground in your browser to start playing with your GraphQL API.
@@ -406,12 +436,12 @@ After starting the server, you can visit http://localhost:1337/playground in you
 
 You can also run the Parse GraphQL API inside a Docker container:
 
-```
+```bash
 $ git clone https://github.com/parse-community/parse-server
 $ cd parse-server
 $ docker build --tag parse-server .
 $ docker run --name my-mongo -d mongo
-$ docker run --name my-parse-server --link my-mongo:mongo -d parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://mongo/test --mountGraphQL --mountPlayground
+$ docker run --name my-parse-server --link my-mongo:mongo -v cloud-code-vol:/parse-server/cloud -v config-vol:/parse-server/config -p 1337:1337 -d parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://mongo/test --publicServerURL http://localhost:1337/parse --mountGraphQL --mountPlayground
 ```
 
 After starting the server, you can visit http://localhost:1337/playground in your browser to start playing with your GraphQL API.
@@ -420,9 +450,17 @@ After starting the server, you can visit http://localhost:1337/playground in you
 
 ### Using Express.js
 
-You can also mount the GraphQL API in an Express.js application together with the REST API or solo:
+You can also mount the GraphQL API in an Express.js application together with the REST API or solo. You first need to create a new project and install the required dependencies:
 
+```bash
+$ mkdir my-app
+$ cd my-app
+$ npm install parse-server express --save
 ```
+
+Then, create an `index.js` file with the following content:
+
+```js
 const express = require('express');
 const { default: ParseServer, ParseGraphQLServer } = require('parse-server');
 
@@ -432,7 +470,8 @@ const parseServer = new ParseServer({
   databaseURI: 'mongodb://localhost:27017/test',
   appId: 'APPLICATION_ID',
   masterKey: 'MASTER_KEY',
-  serverURL: 'http://localhost:1337/parse'
+  serverURL: 'http://localhost:1337/parse',
+  publicServerURL: 'http://localhost:1337/parse'
 });
 
 const parseGraphQLServer = new ParseGraphQLServer(
@@ -454,7 +493,14 @@ app.listen(1337, function() {
 });
 ```
 
-After starting the server, you can visit http://localhost:1337/playground in your browser to start playing with your GraphQL API.
+And finally start your app:
+
+```bash
+$ npx mongodb-runner start
+$ node index.js
+```
+
+After starting the app, you can visit http://localhost:1337/playground in your browser to start playing with your GraphQL API.
 
 ***Note:*** Do ***NOT*** mount the GraphQL Playground in production. [Parse Dashboard](https://github.com/parse-community/parse-dashboard) has a built-in GraphQL Playground and it is the recommended option for production apps.
 
@@ -478,31 +524,66 @@ You should receive the following response:
 }
 ```
 
-## Creating your first object
+## Creating your first class
 
-Since your application does not have a schema yet, you can use the generic `create` mutation to create your first object. Run the following:
+Since your application does not have any schema yet, you can use the `createClass` mutation to create your first class. Run the following:
 
 ```graphql
-mutation CreateObject {
-  objects {
-    create(className: "GameScore" fields: { score: 1337 playerName: "Sean Plott" cheatMode: false }) {
-      objectId
-      createdAt
+mutation CreateClass {
+  createClass(
+    name: "GameScore"
+    schemaFields: {
+      addStrings: [{ name: "playerName" }]
+      addNumbers: [{ name: "score" }]
+      addBooleans: [{ name: "cheatMode" }]
+    }
+  ) {
+    name
+    schemaFields {
+      name
+      __typename
     }
   }
 }
 ```
 
-You should receive a response similar to this:
+You should receive the following response:
 
 ```json
 {
   "data": {
-    "objects": {
-      "create": {
-        "objectId": "7jfBmbGgyF",
-        "createdAt": "2019-06-20T23:50:50.825Z"
-      }
+    "createClass": {
+      "name": "GameScore",
+      "schemaFields": [
+        {
+          "name": "objectId",
+          "__typename": "SchemaStringField"
+        },
+        {
+          "name": "updatedAt",
+          "__typename": "SchemaDateField"
+        },
+        {
+          "name": "createdAt",
+          "__typename": "SchemaDateField"
+        },
+        {
+          "name": "playerName",
+          "__typename": "SchemaStringField"
+        },
+        {
+          "name": "score",
+          "__typename": "SchemaNumberField"
+        },
+        {
+          "name": "cheatMode",
+          "__typename": "SchemaBooleanField"
+        },
+        {
+          "name": "ACL",
+          "__typename": "SchemaACLField"
+        }
+      ]
     }
   }
 }
@@ -510,17 +591,26 @@ You should receive a response similar to this:
 
 ## Using automatically generated operations
 
-Parse Server learned from the first object that you created and now you have the `GameScore` class in your schema. You can now start using the automatically generated operations!
+Parse Server learned from the first class that you created and now you have the `GameScore` class in your schema. You can now start using the automatically generated operations!
 
-Run the following to create a second object:
+Run the following to create your first object:
 
 ```graphql
 mutation CreateGameScore {
-  objects {
-    createGameScore(fields: { score: 2558 playerName: "Luke Skywalker" cheatMode: false }) {
-      objectId
-      createdAt
+  createGameScore(
+    fields: {
+      playerName: "Sean Plott"
+      score: 1337
+      cheatMode: false
     }
+  ) {
+    id
+    updatedAt
+    createdAt
+    playerName
+    score
+    cheatMode
+    ACL
   }
 }
 ```
@@ -530,11 +620,14 @@ You should receive a response similar to this:
 ```json
 {
   "data": {
-    "objects": {
-      "createGameScore": {
-        "objectId": "gySYolb2CL",
-        "createdAt": "2019-06-20T23:56:37.114Z"
-      }
+    "createGameScore": {
+      "id": "XN75D94OBD",
+      "updatedAt": "2019-09-17T06:50:26.357Z",
+      "createdAt": "2019-09-17T06:50:26.357Z",
+      "playerName": "Sean Plott",
+      "score": 1337,
+      "cheatMode": false,
+      "ACL": null
     }
   }
 }
@@ -543,13 +636,16 @@ You should receive a response similar to this:
 You can also run a query to this new class:
 
 ```graphql
-query FindGameScore {
-  objects {
-    findGameScore {
-      results {
-        playerName
-        score
-      }
+query GameScores {
+  gameScores {
+    results {
+      id
+      updatedAt
+      createdAt
+      playerName
+      score
+      cheatMode
+      ACL
     }
   }
 }
@@ -560,19 +656,18 @@ You should receive a response similar to this:
 ```json
 {
   "data": {
-    "objects": {
-      "findGameScore": {
-        "results": [
-          {
-            "playerName": "Sean Plott",
-            "score": 1337
-          },
-          {
-            "playerName": "Luke Skywalker",
-            "score": 2558
-          }
-        ]
-      }
+    "gameScores": {
+      "results": [
+        {
+          "id": "XN75D94OBD",
+          "updatedAt": "2019-09-17T06:50:26.357Z",
+          "createdAt": "2019-09-17T06:50:26.357Z",
+          "playerName": "Sean Plott",
+          "score": 1337,
+          "cheatMode": false,
+          "ACL": null
+        }
+      ]
     }
   }
 }
@@ -585,7 +680,7 @@ Parse GraphQL Server allows you to create a custom GraphQL schema with own queri
 To start creating your custom schema, you need to code a `schema.graphql` file and initialize Parse Server with `--graphQLSchema` and `--cloud` options:
 
 ```bash
-$ parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://localhost/test --mountGraphQL --mountPlayground --graphQLSchema ./schema.graphql --cloud ./main.js
+$ parse-server --appId APPLICATION_ID --masterKey MASTER_KEY --databaseURI mongodb://localhost/test --publicServerURL http://localhost:1337/parse --cloud ./cloud/main.js --graphQLSchema ./cloud/schema.graphql --mountGraphQL --mountPlayground
 ```
 
 ### Creating your first custom query

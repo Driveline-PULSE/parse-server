@@ -89,7 +89,6 @@ class ParseServer {
         if (serverStartComplete) {
           serverStartComplete(error);
         } else {
-          // eslint-disable-next-line no-console
           console.error(error);
           process.exit(1);
         }
@@ -115,10 +114,26 @@ class ParseServer {
   }
 
   handleShutdown() {
-    const { adapter } = this.config.databaseController;
-    if (adapter && typeof adapter.handleShutdown === 'function') {
-      adapter.handleShutdown();
+    const promises = [];
+    const { adapter: databaseAdapter } = this.config.databaseController;
+    if (
+      databaseAdapter &&
+      typeof databaseAdapter.handleShutdown === 'function'
+    ) {
+      promises.push(databaseAdapter.handleShutdown());
     }
+    const { adapter: fileAdapter } = this.config.filesController;
+    if (fileAdapter && typeof fileAdapter.handleShutdown === 'function') {
+      promises.push(fileAdapter.handleShutdown());
+    }
+    return (promises.length > 0
+      ? Promise.all(promises)
+      : Promise.resolve()
+    ).then(() => {
+      if (this.config.serverCloseComplete) {
+        this.config.serverCloseComplete();
+      }
+    });
   }
 
   /**
@@ -130,7 +145,7 @@ class ParseServer {
     // It's the equivalent of https://api.parse.com/1 in the hosted Parse API.
     var api = express();
     //api.use("/apps", express.static(__dirname + "/public"));
-    api.use(middlewares.allowCrossDomain);
+    api.use(middlewares.allowCrossDomain(appId));
     // File handling needs to be before default middlewares are applied
     api.use(
       '/',
@@ -247,10 +262,12 @@ class ParseServer {
 
     if (options.mountGraphQL === true || options.mountPlayground === true) {
       let graphQLCustomTypeDefs = undefined;
-      if (options.graphQLSchema) {
+      if (typeof options.graphQLSchema === 'string') {
         graphQLCustomTypeDefs = parse(
           fs.readFileSync(options.graphQLSchema, 'utf8')
         );
+      } else if (typeof options.graphQLSchema === 'object') {
+        graphQLCustomTypeDefs = options.graphQLSchema;
       }
 
       const parseGraphQLServer = new ParseGraphQLServer(this, {
@@ -352,13 +369,23 @@ function addParseCloud() {
 
 function injectDefaults(options: ParseServerOptions) {
   Object.keys(defaults).forEach(key => {
-    if (!options.hasOwnProperty(key)) {
+    if (!Object.prototype.hasOwnProperty.call(options, key)) {
       options[key] = defaults[key];
     }
   });
 
-  if (!options.hasOwnProperty('serverURL')) {
+  if (!Object.prototype.hasOwnProperty.call(options, 'serverURL')) {
     options.serverURL = `http://localhost:${options.port}${options.mountPath}`;
+  }
+
+  // Reserved Characters
+  if (options.appId) {
+    const regex = /[!#$%'()*+&/:;=?@[\]{}^,|<>]/g;
+    if (options.appId.match(regex)) {
+      console.warn(
+        `\nWARNING, appId that contains special characters can cause issues while using with urls.\n`
+      );
+    }
   }
 
   // Backwards compatibility

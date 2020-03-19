@@ -2,6 +2,8 @@
  * @interface ParseServerOptions
  * @property {Any} accountLockout account lockout policy for failed login attempts
  * @property {Boolean} allowClientClassCreation Enable (or disable) client class creation, defaults to true
+ * @property {Boolean} allowCustomObjectId Enable (or disable) custom objectId
+ * @property {String[]} allowHeaders Add headers to Access-Control-Allow-Headers
  * @property {Adapter<AnalyticsAdapter>} analyticsAdapter Adapter module for the analytics
  * @property {String} appId Your Parse Application ID
  * @property {String} appName Sets the app name
@@ -40,6 +42,7 @@
  * @property {String} masterKey Your Parse Master Key
  * @property {String[]} masterKeyIps Restrict masterKey to be used by only these ips, defaults to [] (allow all ips)
  * @property {Number} maxLimit Max value for limit option on queries, defaults to unlimited
+ * @property {Number|String} maxLogFiles Maximum number of logs to keep. If not set, no logs will be removed. This can be a number of files or number of days. If using days, add 'd' as the suffix. (default: null)
  * @property {String} maxUploadSize Max file size for uploads, defaults to 20mb
  * @property {Union} middleware middleware for express server, can be string or function
  * @property {Boolean} mountGraphQL Mounts the GraphQL endpoint
@@ -59,10 +62,11 @@
  * @property {Boolean} revokeSessionOnPasswordReset When a user changes their password, either through the reset password email or while logged in, all sessions are revoked if this is true. Set to false if you don't want to revoke sessions.
  * @property {Boolean} scheduledPush Configuration for push scheduling, defaults to false.
  * @property {Number} schemaCacheTTL The TTL for caching the schema for optimizing read/write operations. You should put a long TTL when your DB is in production. default to 5000; set 0 to disable.
+ * @property {Function} serverCloseComplete Callback when server has closed
+ * @property {Function} serverStartComplete Callback when server has started
  * @property {String} serverURL URL to your parse server with http:// or https://.
  * @property {Number} sessionLength Session duration, in seconds, defaults to 1 year
  * @property {Boolean} silent Disables console output
- * @property {Boolean} skipMongoDBServer13732Workaround Circumvent Parse workaround for historical MongoDB bug SERVER-13732
  * @property {Boolean} startLiveQueryServer Starts the liveQuery server
  * @property {String[]} userSensitiveFields Personally identifiable information fields in the user table the should be removed for non-authorized users. Deprecated @see protectedFields
  * @property {Boolean} verbose Set the logging to verbose
@@ -106,4 +110,3 @@
  * @property {Number} websocketTimeout Number of milliseconds between ping/pong frames. The WebSocket server sends ping/pong frames to the clients to keep the WebSocket alive. This value defines the interval of the ping/pong frame from the server to clients, defaults to 10 * 1000 ms (10 s).
  * @property {Adapter<WSSAdapter>} wssAdapter Adapter module for the WebSocketServer
  */
-

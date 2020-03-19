@@ -878,7 +878,10 @@ describe('Cloud Code', () => {
         url: 'https://some.url',
       }),
       array: ['a', 'b', 'c'],
-      arrayOfArray: [['a', 'b', 'c'], ['d', 'e', 'f']],
+      arrayOfArray: [
+        ['a', 'b', 'c'],
+        ['d', 'e', 'f'],
+      ],
     };
     Parse.Cloud.run('params', params).then(() => {
       done();
@@ -1546,9 +1549,7 @@ describe('Cloud Code', () => {
 
       request({
         method: 'POST',
-        url: `http://${Parse.applicationId}:${
-          Parse.masterKey
-        }@localhost:8378/1/jobs/myJob`,
+        url: `http://${Parse.applicationId}:${Parse.masterKey}@localhost:8378/1/jobs/myJob`,
       }).then(
         () => {},
         err => {
@@ -1765,8 +1766,15 @@ describe('beforeFind hooks', () => {
       expect(jsonQuery.where.key).toEqual('value');
       expect(jsonQuery.where.some).toEqual({ $gt: 10 });
       expect(jsonQuery.include).toEqual('otherKey,otherValue');
+      expect(jsonQuery.excludeKeys).toBe('exclude');
       expect(jsonQuery.limit).toEqual(100);
       expect(jsonQuery.skip).toBe(undefined);
+      expect(jsonQuery.order).toBe('key');
+      expect(jsonQuery.keys).toBe('select');
+      expect(jsonQuery.readPreference).toBe('PRIMARY');
+      expect(jsonQuery.includeReadPreference).toBe('SECONDARY');
+      expect(jsonQuery.subqueryReadPreference).toBe('SECONDARY_PREFERRED');
+
       expect(req.isGet).toEqual(false);
     });
 
@@ -1775,6 +1783,10 @@ describe('beforeFind hooks', () => {
     query.greaterThan('some', 10);
     query.include('otherKey');
     query.include('otherValue');
+    query.ascending('key');
+    query.select('select');
+    query.exclude('exclude');
+    query.readPreference('PRIMARY', 'SECONDARY', 'SECONDARY_PREFERRED');
     query.find().then(() => {
       done();
     });
@@ -1824,6 +1836,25 @@ describe('beforeFind hooks', () => {
         done();
       });
     });
+  });
+
+  it('should use the modified exclude query', async () => {
+    Parse.Cloud.beforeFind('MyObject', req => {
+      const q = req.query;
+      q.exclude('number');
+    });
+
+    const obj = new Parse.Object('MyObject');
+    obj.set('number', 100);
+    obj.set('string', 'hello');
+    await obj.save();
+
+    const query = new Parse.Query('MyObject');
+    query.equalTo('objectId', obj.id);
+    const results = await query.find();
+    expect(results.length).toBe(1);
+    expect(results[0].get('number')).toBeUndefined();
+    expect(results[0].get('string')).toBe('hello');
   });
 
   it('should reject queries', done => {
@@ -2221,10 +2252,14 @@ describe('afterFind hooks', () => {
   it('should validate triggers correctly', () => {
     expect(() => {
       Parse.Cloud.beforeSave('_Session', () => {});
-    }).toThrow('Triggers are not supported for _Session class.');
+    }).toThrow(
+      'Only the afterLogout trigger is allowed for the _Session class.'
+    );
     expect(() => {
       Parse.Cloud.afterSave('_Session', () => {});
-    }).toThrow('Triggers are not supported for _Session class.');
+    }).toThrow(
+      'Only the afterLogout trigger is allowed for the _Session class.'
+    );
     expect(() => {
       Parse.Cloud.beforeSave('_PushStatus', () => {});
     }).toThrow('Only afterSave is allowed on _PushStatus');
@@ -2234,21 +2269,59 @@ describe('afterFind hooks', () => {
     expect(() => {
       Parse.Cloud.beforeLogin(() => {});
     }).not.toThrow(
-      'Only the _User class is allowed for the beforeLogin trigger'
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
     );
     expect(() => {
       Parse.Cloud.beforeLogin('_User', () => {});
     }).not.toThrow(
-      'Only the _User class is allowed for the beforeLogin trigger'
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
     );
     expect(() => {
       Parse.Cloud.beforeLogin(Parse.User, () => {});
     }).not.toThrow(
-      'Only the _User class is allowed for the beforeLogin trigger'
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
     );
     expect(() => {
       Parse.Cloud.beforeLogin('SomeClass', () => {});
-    }).toThrow('Only the _User class is allowed for the beforeLogin trigger');
+    }).toThrow(
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
+    );
+    expect(() => {
+      Parse.Cloud.afterLogin(() => {});
+    }).not.toThrow(
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
+    );
+    expect(() => {
+      Parse.Cloud.afterLogin('_User', () => {});
+    }).not.toThrow(
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
+    );
+    expect(() => {
+      Parse.Cloud.afterLogin(Parse.User, () => {});
+    }).not.toThrow(
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
+    );
+    expect(() => {
+      Parse.Cloud.afterLogin('SomeClass', () => {});
+    }).toThrow(
+      'Only the _User class is allowed for the beforeLogin and afterLogin triggers'
+    );
+    expect(() => {
+      Parse.Cloud.afterLogout(() => {});
+    }).not.toThrow();
+    expect(() => {
+      Parse.Cloud.afterLogout('_Session', () => {});
+    }).not.toThrow();
+    expect(() => {
+      Parse.Cloud.afterLogout('_User', () => {});
+    }).toThrow(
+      'Only the _Session class is allowed for the afterLogout trigger.'
+    );
+    expect(() => {
+      Parse.Cloud.afterLogout('SomeClass', () => {});
+    }).toThrow(
+      'Only the _Session class is allowed for the afterLogout trigger.'
+    );
   });
 
   it('should skip afterFind hooks for aggregate', done => {
@@ -2383,6 +2456,31 @@ describe('beforeLogin hook', () => {
     done();
   });
 
+  it('should be able to block login if an error is thrown even if the user has a attached file', async done => {
+    let hit = 0;
+    Parse.Cloud.beforeLogin(req => {
+      hit++;
+      if (req.object.get('isBanned')) {
+        throw new Error('banned account');
+      }
+    });
+
+    const user = await Parse.User.signUp('tupac', 'shakur');
+    const base64 = 'V29ya2luZyBhdCBQYXJzZSBpcyBncmVhdCE=';
+    const file = new Parse.File('myfile.txt', { base64 });
+    await file.save();
+    await user.save({ isBanned: true, file });
+
+    try {
+      await Parse.User.logIn('tupac', 'shakur');
+      throw new Error('should not have been logged in.');
+    } catch (e) {
+      expect(e.message).toBe('banned account');
+    }
+    expect(hit).toBe(1);
+    done();
+  });
+
   it('should not run beforeLogin with incorrect credentials', async done => {
     let hit = 0;
     Parse.Cloud.beforeLogin(req => {
@@ -2413,6 +2511,22 @@ describe('beforeLogin hook', () => {
     done();
   });
 
+  it('should trigger afterLogout hook on logout', async done => {
+    let userId;
+    Parse.Cloud.afterLogout(req => {
+      expect(req.object.className).toEqual('_Session');
+      expect(req.object.id).toBeDefined();
+      const user = req.object.get('user');
+      expect(user).toBeDefined();
+      userId = user.id;
+    });
+
+    const user = await Parse.User.signUp('user', 'pass');
+    await Parse.User.logOut();
+    expect(user.id).toBe(userId);
+    done();
+  });
+
   it('should have expected data in request', async done => {
     Parse.Cloud.beforeLogin(req => {
       expect(req.object).toBeDefined();
@@ -2425,6 +2539,123 @@ describe('beforeLogin hook', () => {
 
     await Parse.User.signUp('tupac', 'shakur');
     await Parse.User.logIn('tupac', 'shakur');
+    done();
+  });
+
+  it('afterFind should not be triggered when saving an object', async () => {
+    let beforeSaves = 0;
+    Parse.Cloud.beforeSave('SavingTest', () => {
+      beforeSaves++;
+    });
+
+    let afterSaves = 0;
+    Parse.Cloud.afterSave('SavingTest', () => {
+      afterSaves++;
+    });
+
+    let beforeFinds = 0;
+    Parse.Cloud.beforeFind('SavingTest', () => {
+      beforeFinds++;
+    });
+
+    let afterFinds = 0;
+    Parse.Cloud.afterFind('SavingTest', () => {
+      afterFinds++;
+    });
+
+    const obj = new Parse.Object('SavingTest');
+    obj.set('someField', 'some value 1');
+    await obj.save();
+
+    expect(beforeSaves).toEqual(1);
+    expect(afterSaves).toEqual(1);
+    expect(beforeFinds).toEqual(0);
+    expect(afterFinds).toEqual(0);
+
+    obj.set('someField', 'some value 2');
+    await obj.save();
+
+    expect(beforeSaves).toEqual(2);
+    expect(afterSaves).toEqual(2);
+    expect(beforeFinds).toEqual(0);
+    expect(afterFinds).toEqual(0);
+
+    await obj.fetch();
+
+    expect(beforeSaves).toEqual(2);
+    expect(afterSaves).toEqual(2);
+    expect(beforeFinds).toEqual(1);
+    expect(afterFinds).toEqual(1);
+
+    obj.set('someField', 'some value 3');
+    await obj.save();
+
+    expect(beforeSaves).toEqual(3);
+    expect(afterSaves).toEqual(3);
+    expect(beforeFinds).toEqual(1);
+    expect(afterFinds).toEqual(1);
+  });
+});
+
+describe('afterLogin hook', () => {
+  it('should run afterLogin after successful login', async done => {
+    let hit = 0;
+    Parse.Cloud.afterLogin(req => {
+      hit++;
+      expect(req.object.get('username')).toEqual('testuser');
+    });
+
+    await Parse.User.signUp('testuser', 'p@ssword');
+    const user = await Parse.User.logIn('testuser', 'p@ssword');
+    expect(hit).toBe(1);
+    expect(user).toBeDefined();
+    expect(user.getUsername()).toBe('testuser');
+    expect(user.getSessionToken()).toBeDefined();
+    done();
+  });
+
+  it('should not run afterLogin after unsuccessful login', async done => {
+    let hit = 0;
+    Parse.Cloud.afterLogin(req => {
+      hit++;
+      expect(req.object.get('username')).toEqual('testuser');
+    });
+
+    await Parse.User.signUp('testuser', 'p@ssword');
+    try {
+      await Parse.User.logIn('testuser', 'badpassword');
+    } catch (e) {
+      expect(e.code).toBe(Parse.Error.OBJECT_NOT_FOUND);
+    }
+    expect(hit).toBe(0);
+    done();
+  });
+
+  it('should not run afterLogin on sign up', async done => {
+    let hit = 0;
+    Parse.Cloud.afterLogin(req => {
+      hit++;
+      expect(req.object.get('username')).toEqual('testuser');
+    });
+
+    const user = await Parse.User.signUp('testuser', 'p@ssword');
+    expect(user).toBeDefined();
+    expect(hit).toBe(0);
+    done();
+  });
+
+  it('should have expected data in request', async done => {
+    Parse.Cloud.afterLogin(req => {
+      expect(req.object).toBeDefined();
+      expect(req.user).toBeDefined();
+      expect(req.headers).toBeDefined();
+      expect(req.ip).toBeDefined();
+      expect(req.installationId).toBeDefined();
+      expect(req.context).toBeUndefined();
+    });
+
+    await Parse.User.signUp('testuser', 'p@ssword');
+    await Parse.User.logIn('testuser', 'p@ssword');
     done();
   });
 });

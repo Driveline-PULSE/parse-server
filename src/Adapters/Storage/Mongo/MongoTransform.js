@@ -1282,7 +1282,7 @@ const nestedMongoObjectToNestedParseObject = mongoObject => {
       }
 
       if (
-        mongoObject.hasOwnProperty('__type') &&
+        Object.prototype.hasOwnProperty.call(mongoObject, '__type') &&
         mongoObject.__type == 'Date' &&
         mongoObject.iso instanceof Date
       ) {
@@ -1403,10 +1403,19 @@ const mongoObjectToParseObject = (className, mongoObject, schema) => {
           case 'times_used':
             restObject['timesUsed'] = mongoObject[key];
             break;
+          case 'authData':
+            if (className === '_User') {
+              log.warn(
+                'ignoring authData in _User as this key is reserved to be synthesized of `_auth_data_*` keys'
+              );
+            } else {
+              restObject['authData'] = mongoObject[key];
+            }
+            break;
           default:
             // Check other auth data keys
             var authDataMatch = key.match(/^_auth_data_([a-zA-Z0-9_]+)$/);
-            if (authDataMatch) {
+            if (authDataMatch && className === '_User') {
               var provider = authDataMatch[1];
               restObject['authData'] = restObject['authData'] || {};
               restObject['authData'][provider] = mongoObject[key];
@@ -1544,7 +1553,7 @@ var BytesCoder = {
   },
 
   JSONToDatabase(json) {
-    return new mongodb.Binary(new Buffer(json.base64, 'base64'));
+    return new mongodb.Binary(Buffer.from(json.base64, 'base64'));
   },
 
   isValidJSON(value) {

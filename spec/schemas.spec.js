@@ -425,8 +425,13 @@ describe('schemas', () => {
           foo4: { type: 'Date', required: true },
           foo5: { type: 'Number', defaultValue: 5 },
           ptr: { type: 'Pointer', targetClass: 'SomeClass', required: false },
-          defaultFalse: { type: 'Boolean', required: true, defaultValue: false },
-          defaultZero: { type: 'Number', defaultValue: 0 }
+          defaultFalse: {
+            type: 'Boolean',
+            required: true,
+            defaultValue: false,
+          },
+          defaultZero: { type: 'Number', defaultValue: 0 },
+          relation: { type: 'Relation', targetClass: 'SomeClass' },
         },
       },
     }).then(async response => {
@@ -447,8 +452,13 @@ describe('schemas', () => {
           foo4: { type: 'Date', required: true },
           foo5: { type: 'Number', defaultValue: 5 },
           ptr: { type: 'Pointer', targetClass: 'SomeClass', required: false },
-          defaultFalse: { type: 'Boolean', required: true, defaultValue: false },
-          defaultZero: { type: 'Number', defaultValue: 0 }
+          defaultFalse: {
+            type: 'Boolean',
+            required: true,
+            defaultValue: false,
+          },
+          defaultZero: { type: 'Number', defaultValue: 0 },
+          relation: { type: 'Relation', targetClass: 'SomeClass' },
         },
         classLevelPermissions: defaultClassLevelPermissions,
       });
@@ -468,11 +478,125 @@ describe('schemas', () => {
       expect(obj.get('foo4')).toEqual(date);
       expect(obj.get('foo5')).toEqual(5);
       expect(obj.get('ptr')).toBeUndefined();
-      expect(obj.get('defaultFalse')).toEqual(false)
-      expect(obj.get('defaultZero')).toEqual(0)
+      expect(obj.get('defaultFalse')).toEqual(false);
+      expect(obj.get('defaultZero')).toEqual(0);
       expect(obj.get('ptr')).toBeUndefined();
+      expect(obj.get('relation')).toBeUndefined();
       done();
     });
+  });
+
+  it('try to set a relation field as a required field', async done => {
+    try {
+      await request({
+        url: 'http://localhost:8378/1/schemas',
+        method: 'POST',
+        headers: masterKeyHeaders,
+        json: true,
+        body: {
+          className: 'NewClassWithRelationRequired',
+          fields: {
+            foo: { type: 'String' },
+            relation: {
+              type: 'Relation',
+              targetClass: 'SomeClass',
+              required: true,
+            },
+          },
+        },
+      });
+      fail('should fail');
+    } catch (e) {
+      expect(e.data.code).toEqual(111);
+    }
+    done();
+  });
+
+  it('try to set a relation field with a default value', async done => {
+    try {
+      await request({
+        url: 'http://localhost:8378/1/schemas',
+        method: 'POST',
+        headers: masterKeyHeaders,
+        json: true,
+        body: {
+          className: 'NewClassRelationWithOptions',
+          fields: {
+            foo: { type: 'String' },
+            relation: {
+              type: 'Relation',
+              targetClass: 'SomeClass',
+              defaultValue: { __type: 'Relation', className: '_User' },
+            },
+          },
+        },
+      });
+      fail('should fail');
+    } catch (e) {
+      expect(e.data.code).toEqual(111);
+    }
+    done();
+  });
+
+  it('try to update schemas with a relation field with options', async done => {
+    await request({
+      url: 'http://localhost:8378/1/schemas',
+      method: 'POST',
+      headers: masterKeyHeaders,
+      json: true,
+      body: {
+        className: 'NewClassRelationWithOptions',
+        fields: {
+          foo: { type: 'String' },
+        },
+      },
+    });
+    try {
+      await request({
+        url: 'http://localhost:8378/1/schemas/NewClassRelationWithOptions',
+        method: 'POST',
+        headers: masterKeyHeaders,
+        json: true,
+        body: {
+          className: 'NewClassRelationWithOptions',
+          fields: {
+            relation: {
+              type: 'Relation',
+              targetClass: 'SomeClass',
+              required: true,
+            },
+          },
+          _method: 'PUT',
+        },
+      });
+      fail('should fail');
+    } catch (e) {
+      expect(e.data.code).toEqual(111);
+    }
+
+    try {
+      await request({
+        url: 'http://localhost:8378/1/schemas/NewClassRelationWithOptions',
+        method: 'POST',
+        headers: masterKeyHeaders,
+        json: true,
+        body: {
+          className: 'NewClassRelationWithOptions',
+          fields: {
+            relation: {
+              type: 'Relation',
+              targetClass: 'SomeClass',
+              defaultValue: { __type: 'Relation', className: '_User' },
+            },
+          },
+          _method: 'PUT',
+        },
+      });
+      fail('should fail');
+    } catch (e) {
+      expect(e.data.code).toEqual(111);
+    }
+    done();
   });
 
   it('validated the data type of default values when creating a new class', async () => {
@@ -1711,8 +1835,14 @@ describe('schemas', () => {
     });
   });
 
-  it('should throw with invalid userId (>10 chars)', done => {
-    request({
+  it('should aceept class-level permission with userid of any length', async done => {
+    await global.reconfigureServer({
+      customIdSize: 11,
+    });
+
+    const id = 'e1evenChars';
+
+    const { data } = await request({
       method: 'POST',
       url: 'http://localhost:8378/1/schemas/AClass',
       headers: masterKeyHeaders,
@@ -1720,20 +1850,25 @@ describe('schemas', () => {
       body: {
         classLevelPermissions: {
           find: {
-            '1234567890A': true,
+            [id]: true,
           },
         },
       },
-    }).then(fail, response => {
-      expect(response.data.error).toEqual(
-        "'1234567890A' is not a valid key for class level permissions"
-      );
-      done();
     });
+
+    expect(data.classLevelPermissions.find[id]).toBe(true);
+
+    done();
   });
 
-  it('should throw with invalid userId (<10 chars)', done => {
-    request({
+  it('should allow set class-level permission for custom userid of any length and chars', async done => {
+    await global.reconfigureServer({
+      allowCustomObjectId: true,
+    });
+
+    const symbolsId = 'set:ID+symbol$=@llowed';
+    const shortId = '1';
+    const { data } = await request({
       method: 'POST',
       url: 'http://localhost:8378/1/schemas/AClass',
       headers: masterKeyHeaders,
@@ -1741,16 +1876,53 @@ describe('schemas', () => {
       body: {
         classLevelPermissions: {
           find: {
-            a12345678: true,
+            [symbolsId]: true,
+            [shortId]: true,
           },
         },
       },
-    }).then(fail, response => {
-      expect(response.data.error).toEqual(
-        "'a12345678' is not a valid key for class level permissions"
-      );
-      done();
     });
+
+    expect(data.classLevelPermissions.find[symbolsId]).toBe(true);
+    expect(data.classLevelPermissions.find[shortId]).toBe(true);
+
+    done();
+  });
+
+  it('should allow set ACL for custom userid', async done => {
+    await global.reconfigureServer({
+      allowCustomObjectId: true,
+    });
+
+    const symbolsId = 'symbols:id@allowed=';
+    const shortId = '1';
+    const normalId = 'tensymbols';
+
+    const { data } = await request({
+      method: 'POST',
+      url: 'http://localhost:8378/1/classes/AClass',
+      headers: masterKeyHeaders,
+      json: true,
+      body: {
+        ACL: {
+          [symbolsId]: { read: true, write: true },
+          [shortId]: { read: true, write: true },
+          [normalId]: { read: true, write: true },
+        },
+      },
+    });
+
+    const { data: created } = await request({
+      method: 'GET',
+      url: `http://localhost:8378/1/classes/AClass/${data.objectId}`,
+      headers: masterKeyHeaders,
+      json: true,
+    });
+
+    expect(created.ACL[normalId].write).toBe(true);
+    expect(created.ACL[symbolsId].write).toBe(true);
+    expect(created.ACL[shortId].write).toBe(true);
+    done();
   });
 
   it('should throw with invalid userId (invalid char)', done => {
@@ -2578,6 +2750,144 @@ describe('schemas', () => {
           done();
         }
       );
+  });
+
+  it('should reject creating class schema with field with invalid key', async done => {
+    const config = Config.get(Parse.applicationId);
+    const schemaController = await config.database.loadSchema();
+
+    const fieldName = '1invalid';
+
+    const schemaCreation = () =>
+      schemaController.addClassIfNotExists('AnObject', {
+        [fieldName]: { __type: 'String' },
+      });
+
+    await expectAsync(schemaCreation()).toBeRejectedWith(
+      new Parse.Error(
+        Parse.Error.INVALID_KEY_NAME,
+        `invalid field name: ${fieldName}`
+      )
+    );
+    done();
+  });
+
+  it('should reject creating invalid field name', async done => {
+    const object = new Parse.Object('AnObject');
+
+    await expectAsync(
+      object.save({
+        '!12field': 'field',
+      })
+    ).toBeRejectedWith(new Parse.Error(Parse.Error.INVALID_KEY_NAME));
+    done();
+  });
+
+  it('should be rejected if CLP operation is not an object', async done => {
+    const config = Config.get(Parse.applicationId);
+    const schemaController = await config.database.loadSchema();
+
+    const operationKey = 'get';
+    const operation = true;
+
+    const schemaSetup = async () =>
+      await schemaController.addClassIfNotExists(
+        'AnObject',
+        {},
+        {
+          [operationKey]: operation,
+        }
+      );
+
+    await expectAsync(schemaSetup()).toBeRejectedWith(
+      new Parse.Error(
+        Parse.Error.INVALID_JSON,
+        `'${operation}' is not a valid value for class level permissions ${operationKey} - must be an object`
+      )
+    );
+
+    done();
+  });
+
+  it('should be rejected if CLP protectedFields is not an object', async done => {
+    const config = Config.get(Parse.applicationId);
+    const schemaController = await config.database.loadSchema();
+
+    const operationKey = 'get';
+    const operation = 'wrongtype';
+
+    const schemaSetup = async () =>
+      await schemaController.addClassIfNotExists(
+        'AnObject',
+        {},
+        {
+          [operationKey]: operation,
+        }
+      );
+
+    await expectAsync(schemaSetup()).toBeRejectedWith(
+      new Parse.Error(
+        Parse.Error.INVALID_JSON,
+        `'${operation}' is not a valid value for class level permissions ${operationKey} - must be an object`
+      )
+    );
+
+    done();
+  });
+
+  it('should be rejected if CLP read/writeUserFields is not an array', async done => {
+    const config = Config.get(Parse.applicationId);
+    const schemaController = await config.database.loadSchema();
+
+    const operationKey = 'readUserFields';
+    const operation = true;
+
+    const schemaSetup = async () =>
+      await schemaController.addClassIfNotExists(
+        'AnObject',
+        {},
+        {
+          [operationKey]: operation,
+        }
+      );
+
+    await expectAsync(schemaSetup()).toBeRejectedWith(
+      new Parse.Error(
+        Parse.Error.INVALID_JSON,
+        `'${operation}' is not a valid value for class level permissions ${operationKey} - must be an array`
+      )
+    );
+
+    done();
+  });
+
+  it('should be rejected if CLP pointerFields is not an array', async done => {
+    const config = Config.get(Parse.applicationId);
+    const schemaController = await config.database.loadSchema();
+
+    const operationKey = 'get';
+    const entity = 'pointerFields';
+    const value = {};
+
+    const schemaSetup = async () =>
+      await schemaController.addClassIfNotExists(
+        'AnObject',
+        {},
+        {
+          [operationKey]: {
+            [entity]: value,
+          },
+        }
+      );
+
+    await expectAsync(schemaSetup()).toBeRejectedWith(
+      new Parse.Error(
+        Parse.Error.INVALID_JSON,
+        `'${value}' is not a valid value for ${operationKey}[${entity}] - expected an array.`
+      )
+    );
+
+    done();
   });
 
   describe('index management', () => {
