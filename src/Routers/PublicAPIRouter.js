@@ -238,7 +238,7 @@ export class PublicAPIRouter extends PromiseRouter {
     const params = qs.stringify({ locale: locale });
     return Promise.resolve({
       status: 302,
-      location: req.config.invalidLinkURL,
+      location: `${req.config.invalidLinkURL}?${params}`
     });
   }
 
