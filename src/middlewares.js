@@ -4,12 +4,9 @@ import auth from './Auth';
 import Config from './Config';
 import ClientSDK from './ClientSDK';
 import defaultLogger from './logger';
-<<<<<<< HEAD
 import rest from './rest';
 import MongoStorageAdapter from './Adapters/Storage/Mongo/MongoStorageAdapter';
-=======
 const sanitize = require('mongo-sanitize');
->>>>>>> 4.1.0-motus-fix
 
 export const DEFAULT_ALLOWED_HEADERS =
   'X-Parse-Master-Key, X-Parse-REST-API-Key, X-Parse-Javascript-Key, X-Parse-Application-Id, X-Parse-Client-Version, X-Parse-Session-Token, X-Requested-With, X-Parse-Revocable-Session, X-Parse-Request-Id, Content-Type, Pragma, Cache-Control';
