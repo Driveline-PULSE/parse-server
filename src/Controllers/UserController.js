@@ -209,7 +209,7 @@ export class UserController extends AdaptableController {
     );
   }
 
-  async sendPasswordResetEmail(email) {
+  async sendPasswordResetEmail(email, locale = 'en') {
     if (!this.adapter) {
       throw 'Trying to send a reset password but no adapter is set';
       //  TODO: No adapter?
@@ -246,11 +246,12 @@ export class UserController extends AdaptableController {
     const token = encodeURIComponent(user._perishable_token);
     const username = encodeURIComponent(user.username);
 
-    const link = buildEmailLink(this.config.requestResetPasswordURL, username, token, this.config);
+    const link = buildEmailLink(this.config.requestResetPasswordURL, username, token, this.config, locale);
     const options = {
       appName: this.config.appName,
       link: link,
       user: inflate('_User', user),
+      locale: locale
     };
 
     if (this.adapter.sendPasswordResetEmail) {
@@ -326,8 +327,8 @@ function updateUserPassword(user, password, config) {
     .then(() => user);
 }
 
-function buildEmailLink(destination, username, token, config) {
-  const usernameAndToken = `token=${token}&username=${username}`;
+function buildEmailLink(destination, username, token, config, locale) {
+  const usernameAndToken = `token=${token}&username=${username}&locale=${locale}`
 
   if (config.parseFrameURL) {
     const destinationWithoutHost = destination.replace(config.publicServerURL, '');

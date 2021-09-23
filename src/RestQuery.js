@@ -649,6 +649,8 @@ RestQuery.prototype.runFind = function (options = {}) {
   if (this.keys) {
     findOptions.keys = this.keys.map(key => {
       return key.split('.')[0];
+    }).map((element) => {
+      return element.replace('>', '.').replace('>', '.');
     });
   }
   if (options.op) {

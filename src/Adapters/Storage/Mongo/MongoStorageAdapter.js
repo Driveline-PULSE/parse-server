@@ -552,6 +552,7 @@ export class MongoStorageAdapter implements StorageAdapter {
     schema = convertParseSchemaToMongoSchema(schema);
     const mongoUpdate = transformUpdate(className, update, schema);
     const mongoWhere = transformWhere(className, query, schema);
+
     return this._adaptiveCollection(className)
       .then(collection =>
         collection._mongoCollection.findOneAndUpdate(mongoWhere, mongoUpdate, {

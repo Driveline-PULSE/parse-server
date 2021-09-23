@@ -1,4 +1,4 @@
-﻿// @flow
+// @flow
 // A database adapter that works with data exported from the hosted
 // Parse database.
 
@@ -112,7 +112,7 @@ const validateQuery = (query: any): void => {
         }
       }
     }
-    if (!isSpecialQueryKey(key) && !key.match(/^[a-zA-Z][a-zA-Z0-9_\.]*$/)) {
+    if (!isSpecialQueryKey(key) && !key.match(/^[a-zA-Z][a-zA-Z0-9_\. ]*$/)) {
       throw new Parse.Error(Parse.Error.INVALID_KEY_NAME, `Invalid key name: ${key}`);
     }
   });

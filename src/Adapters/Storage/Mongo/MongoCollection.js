@@ -100,7 +100,7 @@ export default class MongoCollection {
     return explain ? findOperation.explain(explain) : findOperation.toArray();
   }
 
-  count(query, { skip, limit, sort, maxTimeMS, readPreference, hint } = {}) {
+count(query, { skip, limit, sort, maxTimeMS, readPreference, hint } = {}) {
     // If query is empty, then use estimatedDocumentCount instead.
     // This is due to countDocuments performing a scan,
     // which greatly increases execution time when being run on large collections.
@@ -148,7 +148,19 @@ export default class MongoCollection {
   }
 
   updateOne(query, update) {
-    return this._mongoCollection.updateOne(query, update);
+    const hrstart = process.hrtime();
+    const updateOneOperation = this._mongoCollection.updateOne(query, update);
+    if (typeof Logger !== 'undefined' && typeof Logger.PARSE_QUERIES !== 'undefined' && Logger.logEnabled(Logger.PARSE_QUERIES)) {
+      return updateOneOperation.then((results) => {
+        const hrend = process.hrtime(hrstart);
+        const ms = hrend[0] * 1000 + hrend[1] / 1000000;
+        Logger.log("PARSE_QUERIES", this._mongoCollection.s.name + ".updateOne query: " + JSON.stringify(query) + " update " + JSON.stringify(update) + " took " + ms + "ms");
+        return results;
+      });
+    }
+    else {
+      return updateOneOperation;
+    }
   }
 
   updateMany(query, update, session) {

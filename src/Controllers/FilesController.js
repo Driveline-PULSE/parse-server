@@ -108,6 +108,10 @@ export class FilesController extends AdaptableController {
     }
     return validateFilename(filename);
   }
+
+  getFileStream(config, filename) {
+    return this.adapter.getFileStream(filename);
+  }
 }
 
 export default FilesController;
