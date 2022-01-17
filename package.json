@@ -47,7 +47,7 @@
     "mime": "2.5.2",
     "mongodb": "3.6.11",
     "mustache": "4.2.0",
-    "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#v3.3.0-motus",
+    "parse": "https://github.com/Driveline-PULSE/Parse-SDK-JS.git#v3.3.0-motus",
     "pg-monitor": "1.4.1",
     "pg-promise": "10.11.0",
     "pluralize": "8.0.0",
