@@ -42,8 +42,7 @@
     "winston": "2.3.1",
     "winston-daily-rotate-file": "1.4.6",
     "ws": "2.2.3",
-    "bcrypt": "^5.1.0",
-    "babel-cli": "^6.26.0",
+    "babel-cli": "6.23.0",
     "babel-core": "6.23.1",
     "babel-eslint": "^7.1.1",
     "babel-plugin-syntax-flow": "6.13.0",
@@ -68,8 +67,7 @@
     "parse": "https://github.com/ProximalPod/Parse-SDK-JS.git#master"
   },
   "devDependencies": {
-    "bcrypt": "^5.1.0",
-    "babel-cli": "^6.26.0",
+    "babel-cli": "6.24.1",
     "babel-core": "6.24.1",
     "babel-eslint": "^7.1.1",
     "babel-plugin-syntax-flow": "6.18.0",
