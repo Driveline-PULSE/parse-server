@@ -5,6 +5,51 @@ Do not edit manually, but update Options/index.js
 */
 var parsers = require('./parsers');
 
+module.exports.SchemaOptions = {
+  afterMigration: {
+    env: 'PARSE_SERVER_SCHEMA_AFTER_MIGRATION',
+    help: 'Execute a callback after running schema migrations.',
+  },
+  beforeMigration: {
+    env: 'PARSE_SERVER_SCHEMA_BEFORE_MIGRATION',
+    help: 'Execute a callback before running schema migrations.',
+  },
+  definitions: {
+    env: 'PARSE_SERVER_SCHEMA_DEFINITIONS',
+    help:
+      'Rest representation on Parse.Schema https://docs.parseplatform.org/rest/guide/#adding-a-schema',
+    required: true,
+    action: parsers.objectParser,
+    default: [],
+  },
+  deleteExtraFields: {
+    env: 'PARSE_SERVER_SCHEMA_DELETE_EXTRA_FIELDS',
+    help:
+      'Is true if Parse Server should delete any fields not defined in a schema definition. This should only be used during development.',
+    action: parsers.booleanParser,
+    default: false,
+  },
+  lockSchemas: {
+    env: 'PARSE_SERVER_SCHEMA_LOCK_SCHEMAS',
+    help:
+      'Is true if Parse Server will reject any attempts to modify the schema while the server is running.',
+    action: parsers.booleanParser,
+    default: false,
+  },
+  recreateModifiedFields: {
+    env: 'PARSE_SERVER_SCHEMA_RECREATE_MODIFIED_FIELDS',
+    help:
+      'Is true if Parse Server should recreate any fields that are different between the current database schema and theschema definition. This should only be used during development.',
+    action: parsers.booleanParser,
+    default: false,
+  },
+  strict: {
+    env: 'PARSE_SERVER_SCHEMA_STRICT',
+    help: 'Is true if Parse Server should exit if schema update fail.',
+    action: parsers.booleanParser,
+    default: false,
+  },
+};
 module.exports.ParseServerOptions = {
   accountLockout: {
     env: 'PARSE_SERVER_ACCOUNT_LOCKOUT',
@@ -50,7 +95,6 @@ module.exports.ParseServerOptions = {
     env: 'PARSE_SERVER_AUTH_PROVIDERS',
     help:
       'Configuration for your authentication providers, as stringified JSON. See http://docs.parseplatform.org/parse-server/guide/#oauth-and-3rd-party-authentication',
-    action: parsers.objectParser,
   },
   cacheAdapter: {
     env: 'PARSE_SERVER_CACHE_ADAPTER',
@@ -95,7 +139,8 @@ module.exports.ParseServerOptions = {
   },
   databaseAdapter: {
     env: 'PARSE_SERVER_DATABASE_ADAPTER',
-    help: 'Adapter module for the database',
+    help:
+      'Adapter module for the database; any options that are not explicitly described here are passed directly to the database client.',
     action: parsers.moduleOrObjectParser,
   },
   databaseOptions: {
@@ -108,6 +153,12 @@ module.exports.ParseServerOptions = {
     help: 'The full URI to your database. Supported databases are mongodb or postgres.',
     required: true,
     default: 'mongodb://localhost:27017/parse',
+  },
+  defaultLimit: {
+    env: 'PARSE_SERVER_DEFAULT_LIMIT',
+    help: 'Default value for limit option on queries, defaults to `100`.',
+    action: parsers.numberParser('defaultLimit'),
+    default: 100,
   },
   directAccess: {
     env: 'PARSE_SERVER_DIRECT_ACCESS',
@@ -153,6 +204,12 @@ module.exports.ParseServerOptions = {
   encryptionKey: {
     env: 'PARSE_SERVER_ENCRYPTION_KEY',
     help: 'Key for encrypting your files',
+  },
+  enforcePrivateUsers: {
+    env: 'PARSE_SERVER_ENFORCE_PRIVATE_USERS',
+    help: 'Set to true if new users should be created without public read and write access.',
+    action: parsers.booleanParser,
+    default: false,
   },
   expireInactiveSessions: {
     env: 'PARSE_SERVER_EXPIRE_INACTIVE_SESSIONS',
@@ -344,6 +401,24 @@ module.exports.ParseServerOptions = {
     env: 'PARSE_SERVER_READ_ONLY_MASTER_KEY',
     help: 'Read-only key, which has the same capabilities as MasterKey without writes',
   },
+  requestKeywordDenylist: {
+    env: 'PARSE_SERVER_REQUEST_KEYWORD_DENYLIST',
+    help:
+      'An array of keys and values that are prohibited in database read and write requests to prevent potential security vulnerabilities. It is possible to specify only a key (`{"key":"..."}`), only a value (`{"value":"..."}`) or a key-value pair (`{"key":"...","value":"..."}`). The specification can use the following types: `boolean`, `numeric` or `string`, where `string` will be interpreted as a regex notation. Request data is deep-scanned for matching definitions to detect also any nested occurrences. Defaults are patterns that are likely to be used in malicious requests. Setting this option will override the default patterns.',
+    action: parsers.arrayParser,
+    default: [
+      {
+        key: '_bsontype',
+        value: 'Code',
+      },
+      {
+        key: 'constructor',
+      },
+      {
+        key: '__proto__',
+      },
+    ],
+  },
   restAPIKey: {
     env: 'PARSE_SERVER_REST_API_KEY',
     help: 'Key for REST calls',
@@ -360,6 +435,11 @@ module.exports.ParseServerOptions = {
     help: 'Configuration for push scheduling, defaults to false.',
     action: parsers.booleanParser,
     default: false,
+  },
+  schema: {
+    env: 'PARSE_SERVER_SCHEMA',
+    help: 'Defined schema',
+    action: parsers.objectParser,
   },
   security: {
     env: 'PARSE_SERVER_SECURITY',
@@ -395,6 +475,13 @@ module.exports.ParseServerOptions = {
     env: 'PARSE_SERVER_START_LIVE_QUERY_SERVER',
     help: 'Starts the liveQuery server',
     action: parsers.booleanParser,
+  },
+  trustProxy: {
+    env: 'PARSE_SERVER_TRUST_PROXY',
+    help:
+      'The trust proxy settings. It is important to understand the exact setup of the reverse proxy, since this setting will trust values provided in the Parse Server API request. See the <a href="https://expressjs.com/en/guide/behind-proxies.html">express trust proxy settings</a> documentation. Defaults to `false`.',
+    action: parsers.objectParser,
+    default: [],
   },
   userSensitiveFields: {
     env: 'PARSE_SERVER_USER_SENSITIVE_FIELDS',
@@ -792,6 +879,13 @@ module.exports.FileUploadOptions = {
     action: parsers.booleanParser,
     default: false,
   },
+  fileExtensions: {
+    env: 'PARSE_SERVER_FILE_UPLOAD_FILE_EXTENSIONS',
+    help:
+      "Sets the allowed file extensions for uploading files. The extension is defined as an array of file extensions, or a regex pattern.<br><br>It is recommended to restrict the file upload extensions as much as possible. HTML files are especially problematic as they may be used by an attacker who uploads a HTML form to look legitimate under your app's domain name, or to compromise the session token of another user via accessing the browser's local storage.<br><br>Defaults to `^[^hH][^tT][^mM][^lL]?$` which allows any file extension except HTML files.",
+    action: parsers.arrayParser,
+    default: ['^[^hH][^tT][^mM][^lL]?$'],
+  },
 };
 module.exports.DatabaseOptions = {
   enableSchemaHooks: {
@@ -800,5 +894,12 @@ module.exports.DatabaseOptions = {
       'Enables database real-time hooks to update single schema cache. Set to `true` if using multiple Parse Servers instances connected to the same database. Failing to do so will cause a schema change to not propagate to all instances and re-syncing will only happen when the instances restart. To use this feature with MongoDB, a replica set cluster with [change stream](https://docs.mongodb.com/manual/changeStreams/#availability) support is required.',
     action: parsers.booleanParser,
     default: false,
+  },
+};
+module.exports.AuthAdapter = {
+  enabled: {
+    help: 'Is `true` if the auth adapter is enabled, `false` otherwise.',
+    action: parsers.booleanParser,
+    default: true,
   },
 };

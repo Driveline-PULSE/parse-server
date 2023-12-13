@@ -12,16 +12,11 @@ export const Types = {
   afterDelete: 'afterDelete',
   beforeFind: 'beforeFind',
   afterFind: 'afterFind',
-  beforeSaveFile: 'beforeSaveFile',
-  afterSaveFile: 'afterSaveFile',
-  beforeDeleteFile: 'beforeDeleteFile',
-  afterDeleteFile: 'afterDeleteFile',
   beforeConnect: 'beforeConnect',
   beforeSubscribe: 'beforeSubscribe',
   afterEvent: 'afterEvent',
 };
 
-const FileClassName = '@File';
 const ConnectClassName = '@Connect';
 
 const baseStore = function () {
@@ -45,6 +40,16 @@ const baseStore = function () {
     LiveQuery,
   });
 };
+
+export function getClassName(parseClass) {
+  if (parseClass && parseClass.className) {
+    return parseClass.className;
+  }
+  if (parseClass && parseClass.name) {
+    return parseClass.name.replace('Parse', '@');
+  }
+  return parseClass;
+}
 
 function validateClassNameForTriggers(className, type) {
   if (type == Types.beforeSave && className === '_PushStatus') {
@@ -133,11 +138,6 @@ export function addTrigger(type, className, handler, applicationId, validationHa
   add(Category.Validators, `${type}.${className}`, validationHandler, applicationId);
 }
 
-export function addFileTrigger(type, handler, applicationId, validationHandler) {
-  add(Category.Triggers, `${type}.${FileClassName}`, handler, applicationId);
-  add(Category.Validators, `${type}.${FileClassName}`, validationHandler, applicationId);
-}
-
 export function addConnectTrigger(type, handler, applicationId, validationHandler) {
   add(Category.Triggers, `${type}.${ConnectClassName}`, handler, applicationId);
   add(Category.Validators, `${type}.${ConnectClassName}`, validationHandler, applicationId);
@@ -161,6 +161,27 @@ export function _unregisterAll() {
   Object.keys(_triggerStore).forEach(appId => delete _triggerStore[appId]);
 }
 
+export function toJSONwithObjects(object, className) {
+  if (!object || !object.toJSON) {
+    return {};
+  }
+  const toJSON = object.toJSON();
+  const stateController = Parse.CoreManager.getObjectStateController();
+  const [pending] = stateController.getPendingOps(object._getStateIdentifier());
+  for (const key in pending) {
+    const val = object.get(key);
+    if (!val || !val._toFullJSON) {
+      toJSON[key] = val;
+      continue;
+    }
+    toJSON[key] = val._toFullJSON();
+  }
+  if (className) {
+    toJSON.className = className;
+  }
+  return toJSON;
+}
+
 export function getTrigger(className, triggerType, applicationId) {
   if (!applicationId) {
     throw 'Missing ApplicationID';
@@ -177,10 +198,6 @@ export async function runTrigger(trigger, name, request, auth) {
     return;
   }
   return await trigger(request);
-}
-
-export function getFileTrigger(type, applicationId) {
-  return getTrigger(FileClassName, type, applicationId);
 }
 
 export function triggerExists(className: string, type: string, applicationId: string): boolean {
@@ -316,7 +333,7 @@ export function getResponseObject(request, resolve, reject) {
           response = request.objects;
         }
         response = response.map(object => {
-          return object.toJSON();
+          return toJSONwithObjects(object);
         });
         return resolve(response);
       }
@@ -444,12 +461,6 @@ export function maybeRunAfterFindTrigger(
         const response = trigger(request);
         if (response && typeof response.then === 'function') {
           return response.then(results => {
-            if (!results) {
-              throw new Parse.Error(
-                Parse.Error.SCRIPT_FAILED,
-                'AfterFind expect results to be returned in the promise'
-              );
-            }
             return results;
           });
         }
@@ -716,7 +727,7 @@ async function builtInTriggerValidator(options, request, auth) {
         }
         if (opt.constant && request.object) {
           if (request.original) {
-            request.object.set(key, request.original.get(key));
+            request.object.revert(key);
           } else if (opt.default != null) {
             request.object.set(key, opt.default);
           }
@@ -939,7 +950,8 @@ export function getRequestFileObject(triggerType, auth, fileObject, config) {
 }
 
 export async function maybeRunFileTrigger(triggerType, fileObject, config, auth) {
-  const fileTrigger = getFileTrigger(triggerType, config.applicationId);
+  const FileClassName = getClassName(Parse.File);
+  const fileTrigger = getTrigger(FileClassName, triggerType, config.applicationId);
   if (typeof fileTrigger === 'function') {
     try {
       const request = getRequestFileObject(triggerType, auth, fileObject, config);

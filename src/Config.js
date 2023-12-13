@@ -11,6 +11,8 @@ import {
   AccountLockoutOptions,
   PagesOptions,
   SecurityOptions,
+  SchemaOptions,
+  ParseServerOptions,
 } from './Options/Definitions';
 import { isBoolean, isString } from 'lodash';
 
@@ -34,7 +36,7 @@ export class Config {
     config.applicationId = applicationId;
     Object.keys(cacheInfo).forEach(key => {
       if (key == 'databaseController') {
-        config.database = new DatabaseController(cacheInfo.databaseController.adapter);
+        config.database = new DatabaseController(cacheInfo.databaseController.adapter, config);
       } else {
         config[key] = cacheInfo[key];
       }
@@ -63,6 +65,7 @@ export class Config {
     revokeSessionOnPasswordReset,
     expireInactiveSessions,
     sessionLength,
+    defaultLimit,
     maxLimit,
     emailVerifyTokenValidityDuration,
     accountLockout,
@@ -76,6 +79,9 @@ export class Config {
     fileUpload,
     pages,
     security,
+    enforcePrivateUsers,
+    schema,
+    requestKeywordDenylist,
   }) {
     if (masterKey === readOnlyMasterKey) {
       throw new Error('masterKey and readOnlyMasterKey should be different');
@@ -107,11 +113,29 @@ export class Config {
     }
     this.validateSessionConfiguration(sessionLength, expireInactiveSessions);
     this.validateMasterKeyIps(masterKeyIps);
+    this.validateDefaultLimit(defaultLimit);
     this.validateMaxLimit(maxLimit);
     this.validateAllowHeaders(allowHeaders);
     this.validateIdempotencyOptions(idempotencyOptions);
     this.validatePagesOptions(pages);
     this.validateSecurityOptions(security);
+    this.validateSchemaOptions(schema);
+    this.validateEnforcePrivateUsers(enforcePrivateUsers);
+    this.validateRequestKeywordDenylist(requestKeywordDenylist);
+  }
+
+  static validateRequestKeywordDenylist(requestKeywordDenylist) {
+    if (requestKeywordDenylist === undefined) {
+      requestKeywordDenylist = requestKeywordDenylist.default;
+    } else if (!Array.isArray(requestKeywordDenylist)) {
+      throw 'Parse Server option requestKeywordDenylist must be an array.';
+    }
+  }
+
+  static validateEnforcePrivateUsers(enforcePrivateUsers) {
+    if (typeof enforcePrivateUsers !== 'boolean') {
+      throw 'Parse Server option enforcePrivateUsers must be a boolean.';
+    }
   }
 
   static validateSecurityOptions(security) {
@@ -127,6 +151,48 @@ export class Config {
       security.enableCheckLog = SecurityOptions.enableCheckLog.default;
     } else if (!isBoolean(security.enableCheckLog)) {
       throw 'Parse Server option security.enableCheckLog must be a boolean.';
+    }
+  }
+
+  static validateSchemaOptions(schema: SchemaOptions) {
+    if (!schema) return;
+    if (Object.prototype.toString.call(schema) !== '[object Object]') {
+      throw 'Parse Server option schema must be an object.';
+    }
+    if (schema.definitions === undefined) {
+      schema.definitions = SchemaOptions.definitions.default;
+    } else if (!Array.isArray(schema.definitions)) {
+      throw 'Parse Server option schema.definitions must be an array.';
+    }
+    if (schema.strict === undefined) {
+      schema.strict = SchemaOptions.strict.default;
+    } else if (!isBoolean(schema.strict)) {
+      throw 'Parse Server option schema.strict must be a boolean.';
+    }
+    if (schema.deleteExtraFields === undefined) {
+      schema.deleteExtraFields = SchemaOptions.deleteExtraFields.default;
+    } else if (!isBoolean(schema.deleteExtraFields)) {
+      throw 'Parse Server option schema.deleteExtraFields must be a boolean.';
+    }
+    if (schema.recreateModifiedFields === undefined) {
+      schema.recreateModifiedFields = SchemaOptions.recreateModifiedFields.default;
+    } else if (!isBoolean(schema.recreateModifiedFields)) {
+      throw 'Parse Server option schema.recreateModifiedFields must be a boolean.';
+    }
+    if (schema.lockSchemas === undefined) {
+      schema.lockSchemas = SchemaOptions.lockSchemas.default;
+    } else if (!isBoolean(schema.lockSchemas)) {
+      throw 'Parse Server option schema.lockSchemas must be a boolean.';
+    }
+    if (schema.beforeMigration === undefined) {
+      schema.beforeMigration = null;
+    } else if (schema.beforeMigration !== null && typeof schema.beforeMigration !== 'function') {
+      throw 'Parse Server option schema.beforeMigration must be a function.';
+    }
+    if (schema.afterMigration === undefined) {
+      schema.afterMigration = null;
+    } else if (schema.afterMigration !== null && typeof schema.afterMigration !== 'function') {
+      throw 'Parse Server option schema.afterMigration must be a function.';
     }
   }
 
@@ -359,6 +425,11 @@ export class Config {
     } else if (typeof fileUpload.enableForAuthenticatedUser !== 'boolean') {
       throw 'fileUpload.enableForAuthenticatedUser must be a boolean value.';
     }
+    if (fileUpload.fileExtensions === undefined) {
+      fileUpload.fileExtensions = FileUploadOptions.fileExtensions.default;
+    } else if (!Array.isArray(fileUpload.fileExtensions)) {
+      throw 'fileUpload.fileExtensions must be an array.';
+    }
   }
 
   static validateMasterKeyIps(masterKeyIps) {
@@ -388,6 +459,18 @@ export class Config {
       } else if (sessionLength <= 0) {
         throw 'Session length must be a value greater than 0.';
       }
+    }
+  }
+
+  static validateDefaultLimit(defaultLimit) {
+    if (defaultLimit == null) {
+      defaultLimit = ParseServerOptions.defaultLimit.default;
+    }
+    if (typeof defaultLimit !== 'number') {
+      throw 'Default limit must be a number.';
+    }
+    if (defaultLimit <= 0) {
+      throw 'Default limit must be a value greater than 0.';
     }
   }
 

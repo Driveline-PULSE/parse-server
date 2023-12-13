@@ -1,16 +1,10 @@
 import { Parse } from 'parse/node';
 import * as triggers from '../triggers';
+import Deprecator from '../Deprecator/Deprecator';
 const Config = require('../Config');
 
 function isParseObjectConstructor(object) {
   return typeof object === 'function' && Object.prototype.hasOwnProperty.call(object, 'className');
-}
-
-function getClassName(parseClass) {
-  if (parseClass && parseClass.className) {
-    return parseClass.className;
-  }
-  return parseClass;
 }
 
 function validateValidator(validator) {
@@ -140,7 +134,7 @@ ParseCloud.job = function (functionName, handler) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use beforeSave for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use beforeSave for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  *
  * ```
  * Parse.Cloud.beforeSave('MyCustomClass', (request) => {
@@ -161,7 +155,7 @@ ParseCloud.job = function (functionName, handler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.TriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.beforeSave = function (parseClass, handler, validationHandler) {
-  var className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.beforeSave,
@@ -177,7 +171,7 @@ ParseCloud.beforeSave = function (parseClass, handler, validationHandler) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use beforeDelete for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use beforeDelete for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  * ```
  * Parse.Cloud.beforeDelete('MyCustomClass', (request) => {
  *   // code here
@@ -197,7 +191,7 @@ ParseCloud.beforeSave = function (parseClass, handler, validationHandler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.TriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.beforeDelete = function (parseClass, handler, validationHandler) {
-  var className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.beforeDelete,
@@ -236,7 +230,7 @@ ParseCloud.beforeLogin = function (handler) {
   if (typeof handler === 'string' || isParseObjectConstructor(handler)) {
     // validation will occur downstream, this is to maintain internal
     // code consistency with the other hook types.
-    className = getClassName(handler);
+    className = triggers.getClassName(handler);
     handler = arguments[1];
   }
   triggers.addTrigger(triggers.Types.beforeLogin, className, handler, Parse.applicationId);
@@ -266,7 +260,7 @@ ParseCloud.afterLogin = function (handler) {
   if (typeof handler === 'string' || isParseObjectConstructor(handler)) {
     // validation will occur downstream, this is to maintain internal
     // code consistency with the other hook types.
-    className = getClassName(handler);
+    className = triggers.getClassName(handler);
     handler = arguments[1];
   }
   triggers.addTrigger(triggers.Types.afterLogin, className, handler, Parse.applicationId);
@@ -295,7 +289,7 @@ ParseCloud.afterLogout = function (handler) {
   if (typeof handler === 'string' || isParseObjectConstructor(handler)) {
     // validation will occur downstream, this is to maintain internal
     // code consistency with the other hook types.
-    className = getClassName(handler);
+    className = triggers.getClassName(handler);
     handler = arguments[1];
   }
   triggers.addTrigger(triggers.Types.afterLogout, className, handler, Parse.applicationId);
@@ -306,7 +300,7 @@ ParseCloud.afterLogout = function (handler) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use afterSave for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use afterSave for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  *
  * ```
  * Parse.Cloud.afterSave('MyCustomClass', async function(request) {
@@ -327,7 +321,7 @@ ParseCloud.afterLogout = function (handler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.TriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.afterSave = function (parseClass, handler, validationHandler) {
-  var className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.afterSave,
@@ -343,7 +337,7 @@ ParseCloud.afterSave = function (parseClass, handler, validationHandler) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use afterDelete for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use afterDelete for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  * ```
  * Parse.Cloud.afterDelete('MyCustomClass', async (request) => {
  *   // code here
@@ -363,7 +357,7 @@ ParseCloud.afterSave = function (parseClass, handler, validationHandler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.TriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.afterDelete = function (parseClass, handler, validationHandler) {
-  var className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.afterDelete,
@@ -379,7 +373,7 @@ ParseCloud.afterDelete = function (parseClass, handler, validationHandler) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use beforeFind for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use beforeFind for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  * ```
  * Parse.Cloud.beforeFind('MyCustomClass', async (request) => {
  *   // code here
@@ -399,7 +393,7 @@ ParseCloud.afterDelete = function (parseClass, handler, validationHandler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.BeforeFindRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.beforeFind = function (parseClass, handler, validationHandler) {
-  var className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.beforeFind,
@@ -415,7 +409,7 @@ ParseCloud.beforeFind = function (parseClass, handler, validationHandler) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use afterFind for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use afterFind for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  * ```
  * Parse.Cloud.afterFind('MyCustomClass', async (request) => {
  *   // code here
@@ -435,7 +429,7 @@ ParseCloud.beforeFind = function (parseClass, handler, validationHandler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.AfterFindRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.afterFind = function (parseClass, handler, validationHandler) {
-  const className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.afterFind,
@@ -464,18 +458,17 @@ ParseCloud.afterFind = function (parseClass, handler, validationHandler) {
  *```
  *
  * @method beforeSaveFile
+ * @deprecated
  * @name Parse.Cloud.beforeSaveFile
  * @param {Function} func The function to run before saving a file. This function can be async and should take just one parameter, {@link Parse.Cloud.FileTriggerRequest}.
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.FileTriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.beforeSaveFile = function (handler, validationHandler) {
-  validateValidator(validationHandler);
-  triggers.addFileTrigger(
-    triggers.Types.beforeSaveFile,
-    handler,
-    Parse.applicationId,
-    validationHandler
-  );
+  Deprecator.logRuntimeDeprecation({
+    usage: 'Parse.Cloud.beforeSaveFile',
+    solution: 'Use Parse.Cloud.beforeSave(Parse.File, (request) => {})',
+  });
+  ParseCloud.beforeSave(Parse.File, handler, validationHandler);
 };
 
 /**
@@ -496,18 +489,17 @@ ParseCloud.beforeSaveFile = function (handler, validationHandler) {
  *```
  *
  * @method afterSaveFile
+ * @deprecated
  * @name Parse.Cloud.afterSaveFile
  * @param {Function} func The function to run after saving a file. This function can be async and should take just one parameter, {@link Parse.Cloud.FileTriggerRequest}.
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.FileTriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.afterSaveFile = function (handler, validationHandler) {
-  validateValidator(validationHandler);
-  triggers.addFileTrigger(
-    triggers.Types.afterSaveFile,
-    handler,
-    Parse.applicationId,
-    validationHandler
-  );
+  Deprecator.logRuntimeDeprecation({
+    usage: 'Parse.Cloud.afterSaveFile',
+    solution: 'Use Parse.Cloud.afterSave(Parse.File, (request) => {})',
+  });
+  ParseCloud.afterSave(Parse.File, handler, validationHandler);
 };
 
 /**
@@ -528,18 +520,17 @@ ParseCloud.afterSaveFile = function (handler, validationHandler) {
  *```
  *
  * @method beforeDeleteFile
+ * @deprecated
  * @name Parse.Cloud.beforeDeleteFile
  * @param {Function} func The function to run before deleting a file. This function can be async and should take just one parameter, {@link Parse.Cloud.FileTriggerRequest}.
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.FileTriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.beforeDeleteFile = function (handler, validationHandler) {
-  validateValidator(validationHandler);
-  triggers.addFileTrigger(
-    triggers.Types.beforeDeleteFile,
-    handler,
-    Parse.applicationId,
-    validationHandler
-  );
+  Deprecator.logRuntimeDeprecation({
+    usage: 'Parse.Cloud.beforeDeleteFile',
+    solution: 'Use Parse.Cloud.beforeDelete(Parse.File, (request) => {})',
+  });
+  ParseCloud.beforeDelete(Parse.File, handler, validationHandler);
 };
 
 /**
@@ -560,18 +551,17 @@ ParseCloud.beforeDeleteFile = function (handler, validationHandler) {
  *```
  *
  * @method afterDeleteFile
+ * @deprecated
  * @name Parse.Cloud.afterDeleteFile
  * @param {Function} func The function to after before deleting a file. This function can be async and should take just one parameter, {@link Parse.Cloud.FileTriggerRequest}.
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.FileTriggerRequest}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.afterDeleteFile = function (handler, validationHandler) {
-  validateValidator(validationHandler);
-  triggers.addFileTrigger(
-    triggers.Types.afterDeleteFile,
-    handler,
-    Parse.applicationId,
-    validationHandler
-  );
+  Deprecator.logRuntimeDeprecation({
+    usage: 'Parse.Cloud.afterDeleteFile',
+    solution: 'Use Parse.Cloud.afterDelete(Parse.File, (request) => {})',
+  });
+  ParseCloud.afterDelete(Parse.File, handler, validationHandler);
 };
 
 /**
@@ -642,7 +632,7 @@ ParseCloud.sendEmail = function (data) {
  *
  * **Available in Cloud Code only.**
  *
- * If you want to use beforeSubscribe for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User}), you should pass the class itself and not the String for arg1.
+ * If you want to use beforeSubscribe for a predefined class in the Parse JavaScript SDK (e.g. {@link Parse.User} or {@link Parse.File}), you should pass the class itself and not the String for arg1.
  * ```
  * Parse.Cloud.beforeSubscribe('MyCustomClass', (request) => {
  *   // code here
@@ -663,7 +653,7 @@ ParseCloud.sendEmail = function (data) {
  */
 ParseCloud.beforeSubscribe = function (parseClass, handler, validationHandler) {
   validateValidator(validationHandler);
-  var className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   triggers.addTrigger(
     triggers.Types.beforeSubscribe,
     className,
@@ -701,7 +691,7 @@ ParseCloud.onLiveQueryEvent = function (handler) {
  * @param {(Object|Function)} validator An optional function to help validating cloud code. This function can be an async function and should take one parameter a {@link Parse.Cloud.LiveQueryEventTrigger}, or a {@link Parse.Cloud.ValidatorObject}.
  */
 ParseCloud.afterLiveQueryEvent = function (parseClass, handler, validationHandler) {
-  const className = getClassName(parseClass);
+  const className = triggers.getClassName(parseClass);
   validateValidator(validationHandler);
   triggers.addTrigger(
     triggers.Types.afterEvent,
@@ -723,7 +713,14 @@ ParseCloud.useMasterKey = () => {
   );
 };
 
-ParseCloud.httpRequest = require('./httpRequest');
+const request = require('./httpRequest');
+ParseCloud.httpRequest = opts => {
+  Deprecator.logRuntimeDeprecation({
+    usage: 'Parse.Cloud.httpRequest',
+    solution: 'Use a http request library instead.',
+  });
+  return request(opts);
+};
 
 module.exports = ParseCloud;
 
