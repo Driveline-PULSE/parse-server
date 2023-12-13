@@ -111,9 +111,7 @@ const validateQuery = (query: any, isMaster: boolean, update: boolean): void => 
         }
       }
     }
-    if (!isSpecialQueryKey(key) && !key.match(/^[a-zA-Z][a-zA-Z0-9_\. ]*$/)) {
-      throw new Parse.Error(Parse.Error.INVALID_KEY_NAME, `Invalid key name: ${key}`);
-    }
+
     if (
       !key.match(/^[a-zA-Z][a-zA-Z0-9_\.]*$/) &&
       ((!specialQueryKeys.includes(key) && !isMaster && !update) ||
