@@ -1,35 +1,38 @@
 /* eslint-disable no-console */
 import { Command } from 'commander';
 import path from 'path';
+import Deprecator from '../../Deprecator/Deprecator';
+
 let _definitions;
 let _reverseDefinitions;
 let _defaults;
 
-Command.prototype.loadDefinitions = function(definitions) {
+Command.prototype.loadDefinitions = function (definitions) {
   _definitions = definitions;
 
   Object.keys(definitions).reduce((program, opt) => {
-    if (typeof definitions[opt] == "object") {
+    if (typeof definitions[opt] == 'object') {
       const additionalOptions = definitions[opt];
       if (additionalOptions.required === true) {
-        return program.option(`--${opt} <${opt}>`, additionalOptions.help, additionalOptions.action);
+        return program.option(
+          `--${opt} <${opt}>`,
+          additionalOptions.help,
+          additionalOptions.action
+        );
       } else {
-        return program.option(`--${opt} [${opt}]`, additionalOptions.help, additionalOptions.action);
+        return program.option(
+          `--${opt} [${opt}]`,
+          additionalOptions.help,
+          additionalOptions.action
+        );
       }
     }
     return program.option(`--${opt} [${opt}]`);
   }, this);
 
-  _defaults = Object.keys(definitions).reduce((defs, opt) => {
-    if(_definitions[opt].default) {
-      defs[opt] = _definitions[opt].default;
-    }
-    return defs;
-  }, {});
-
   _reverseDefinitions = Object.keys(definitions).reduce((object, key) => {
     let value = definitions[key];
-    if (typeof value == "object") {
+    if (typeof value == 'object') {
       value = value.env;
     }
     if (value) {
@@ -38,11 +41,18 @@ Command.prototype.loadDefinitions = function(definitions) {
     return object;
   }, {});
 
-   /* istanbul ignore next */
-  this.on('--help', function(){
+  _defaults = Object.keys(definitions).reduce((defs, opt) => {
+    if (_definitions[opt].default !== undefined) {
+      defs[opt] = _definitions[opt].default;
+    }
+    return defs;
+  }, {});
+
+  /* istanbul ignore next */
+  this.on('--help', function () {
     console.log('  Configure From Environment:');
     console.log('');
-    Object.keys(_reverseDefinitions).forEach((key) => {
+    Object.keys(_reverseDefinitions).forEach(key => {
       console.log(`    $ ${key}='${_reverseDefinitions[key]}'`);
     });
     console.log('');
@@ -53,8 +63,8 @@ function parseEnvironment(env = {}) {
   return Object.keys(_reverseDefinitions).reduce((options, key) => {
     if (env[key]) {
       const originalKey = _reverseDefinitions[key];
-      let action = (option) => (option);
-      if (typeof _definitions[originalKey] === "object") {
+      let action = option => option;
+      if (typeof _definitions[originalKey] === 'object') {
         action = _definitions[originalKey].action || action;
       }
       options[_reverseDefinitions[key]] = action(env[key]);
@@ -77,7 +87,7 @@ function parseConfigFile(program) {
     } else {
       options = jsonConfig;
     }
-    Object.keys(options).forEach((key) => {
+    Object.keys(options).forEach(key => {
       const value = options[key];
       if (!_definitions[key]) {
         throw `error: unknown option ${key}`;
@@ -87,14 +97,14 @@ function parseConfigFile(program) {
         options[key] = action(value);
       }
     });
-    console.log(`Configuration loaded from ${jsonPath}`)
+    console.log(`Configuration loaded from ${jsonPath}`);
   }
   return options;
 }
 
-Command.prototype.setValuesIfNeeded = function(options) {
-  Object.keys(options).forEach((key) => {
-    if (!this.hasOwnProperty(key)) {
+Command.prototype.setValuesIfNeeded = function (options) {
+  Object.keys(options).forEach(key => {
+    if (!Object.prototype.hasOwnProperty.call(this, key)) {
       this[key] = options[key];
     }
   });
@@ -102,7 +112,7 @@ Command.prototype.setValuesIfNeeded = function(options) {
 
 Command.prototype._parse = Command.prototype.parse;
 
-Command.prototype.parse = function(args, env) {
+Command.prototype.parse = function (args, env) {
   this._parse(args);
   // Parse the environment first
   const envOptions = parseEnvironment(env);
@@ -111,11 +121,13 @@ Command.prototype.parse = function(args, env) {
   this.setValuesIfNeeded(envOptions);
   // Load from file to override
   this.setValuesIfNeeded(fromFile);
+  // Scan for deprecated Parse Server options
+  Deprecator.scanParseServerOptions(this);
   // Last set the defaults
   this.setValuesIfNeeded(_defaults);
 };
 
-Command.prototype.getOptions = function() {
+Command.prototype.getOptions = function () {
   return Object.keys(_definitions).reduce((options, key) => {
     if (typeof this[key] !== 'undefined') {
       options[key] = this[key];
@@ -124,5 +136,8 @@ Command.prototype.getOptions = function() {
   }, {});
 };
 
-export default new Command();
+const commander = new Command()
+commander.storeOptionsAsProperties();
+commander.allowExcessArguments();
+export default commander;
 /* eslint-enable no-console */

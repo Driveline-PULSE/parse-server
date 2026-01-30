@@ -1,18 +1,24 @@
 // Helper functions for accessing the meetup API.
-var https = require('https');
 var Parse = require('parse/node').Parse;
+const httpsRequest = require('./httpsRequest');
+import Config from '../../Config';
+import Deprecator from '../../Deprecator/Deprecator';
 
 // Returns a promise that fulfills iff this user id is valid.
-function validateAuthData(authData) {
-  return request('member/self', authData.access_token)
-    .then((data) => {
-      if (data && data.id == authData.id) {
-        return;
-      }
-      throw new Parse.Error(
-        Parse.Error.OBJECT_NOT_FOUND,
-        'Meetup auth is invalid for this user.');
-    });
+async function validateAuthData(authData) {
+  const config = Config.get(Parse.applicationId);
+  const meetupConfig = config.auth.meetup;
+
+  Deprecator.logRuntimeDeprecation({ usage: 'meetup adapter' });
+
+  if (!meetupConfig?.enableInsecureAuth) {
+    throw new Parse.Error('Meetup only works with enableInsecureAuth: true');
+  }
+
+  const data = await request('member/self', authData.access_token);
+  if (data?.id !== authData.id) {
+    throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'Meetup auth is invalid for this user.');
+  }
 }
 
 // Returns a promise that fulfills iff this app id is valid.
@@ -22,33 +28,16 @@ function validateAppId() {
 
 // A promisey wrapper for api requests
 function request(path, access_token) {
-  return new Promise(function(resolve, reject) {
-    https.get({
-      host: 'api.meetup.com',
-      path: '/2/' + path,
-      headers: {
-        'Authorization': 'bearer ' + access_token
-      }
-    }, function(res) {
-      var data = '';
-      res.on('data', function(chunk) {
-        data += chunk;
-      });
-      res.on('end', function() {
-        try {
-          data = JSON.parse(data);
-        } catch(e) {
-          return reject(e);
-        }
-        resolve(data);
-      });
-    }).on('error', function() {
-      reject('Failed to validate this access token with Meetup.');
-    });
+  return httpsRequest.get({
+    host: 'api.meetup.com',
+    path: '/2/' + path,
+    headers: {
+      Authorization: 'bearer ' + access_token,
+    },
   });
 }
 
 module.exports = {
   validateAppId: validateAppId,
-  validateAuthData: validateAuthData
+  validateAuthData: validateAuthData,
 };

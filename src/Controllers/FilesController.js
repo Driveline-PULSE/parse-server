@@ -1,43 +1,51 @@
 // FilesController.js
 import { randomHexString } from '../cryptoUtils';
 import AdaptableController from './AdaptableController';
-import { FilesAdapter } from '../Adapters/Files/FilesAdapter';
-import path  from 'path';
-import mime from 'mime';
+import { validateFilename, FilesAdapter } from '../Adapters/Files/FilesAdapter';
+import path from 'path';
+const Parse = require('parse').Parse;
 
-const legacyFilesRegex = new RegExp("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}-.*");
+const legacyFilesRegex = new RegExp(
+  '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}-.*'
+);
 
 export class FilesController extends AdaptableController {
-
   getFileData(config, filename) {
     return this.adapter.getFileData(filename);
   }
 
-  createFile(config, filename, data, contentType) {
-
+  async createFile(config, filename, data, contentType, options) {
     const extname = path.extname(filename);
 
     const hasExtension = extname.length > 0;
-
-    if (!hasExtension && contentType && mime.extension(contentType)) {
-      filename = filename + '.' + mime.extension(contentType);
+    const mime = (await import('mime')).default
+    if (!hasExtension && contentType && mime.getExtension(contentType)) {
+      filename = filename + '.' + mime.getExtension(contentType);
     } else if (hasExtension && !contentType) {
-      contentType = mime.lookup(filename);
+      contentType = mime.getType(filename);
     }
 
-    filename = randomHexString(32) + '_' + filename;
+    if (!this.options.preserveFileName) {
+      filename = randomHexString(32) + '_' + filename;
+    }
 
-    var location = this.adapter.getFileLocation(config, filename);
-    return this.adapter.createFile(filename, data, contentType).then(() => {
-      return Promise.resolve({
-        url: location,
-        name: filename
-      });
-    });
+    const location = await this.adapter.getFileLocation(config, filename);
+    await this.adapter.createFile(filename, data, contentType, options);
+    return {
+      url: location,
+      name: filename,
+    }
   }
 
   deleteFile(config, filename) {
     return this.adapter.deleteFile(filename);
+  }
+
+  getMetadata(filename) {
+    if (typeof this.adapter.getMetadata === 'function') {
+      return this.adapter.getMetadata(filename);
+    }
+    return Promise.resolve({});
   }
 
   /**
@@ -45,9 +53,10 @@ export class FilesController extends AdaptableController {
    * with the current mount point and app id.
    * Object may be a single object or list of REST-format objects.
    */
-  expandFilesInObject(config, object) {
+  async expandFilesInObject(config, object) {
     if (object instanceof Array) {
-      object.map((obj) => this.expandFilesInObject(config, obj));
+      const promises = object.map(obj => this.expandFilesInObject(config, obj));
+      await Promise.all(promises);
       return;
     }
     if (typeof object !== 'object') {
@@ -64,14 +73,16 @@ export class FilesController extends AdaptableController {
         // all filenames starting with a "-" seperated UUID should be from files.parse.com
         // all other filenames have been migrated or created from Parse Server
         if (config.fileKey === undefined) {
-          fileObject['url'] = this.adapter.getFileLocation(config, filename);
+          fileObject['url'] = await this.adapter.getFileLocation(config, filename);
         } else {
           if (filename.indexOf('tfss-') === 0) {
-            fileObject['url'] = 'http://files.parsetfss.com/' + config.fileKey + '/' + encodeURIComponent(filename);
+            fileObject['url'] =
+              'http://files.parsetfss.com/' + config.fileKey + '/' + encodeURIComponent(filename);
           } else if (legacyFilesRegex.test(filename)) {
-            fileObject['url'] = 'http://files.parse.com/' + config.fileKey + '/' + encodeURIComponent(filename);
+            fileObject['url'] =
+              'http://files.parse.com/' + config.fileKey + '/' + encodeURIComponent(filename);
           } else {
-            fileObject['url'] = this.adapter.getFileLocation(config, filename);
+            fileObject['url'] = await this.adapter.getFileLocation(config, filename);
           }
         }
       }
@@ -82,8 +93,19 @@ export class FilesController extends AdaptableController {
     return FilesAdapter;
   }
 
-  getFileStream(config, filename) {
-    return this.adapter.getFileStream(filename);
+  handleFileStream(config, filename, req, res, contentType) {
+    return this.adapter.handleFileStream(filename, req, res, contentType);
+  }
+
+  validateFilename(filename) {
+    if (typeof this.adapter.validateFilename === 'function') {
+      const error = this.adapter.validateFilename(filename);
+      if (typeof error !== 'string') {
+        return error;
+      }
+      return new Parse.Error(Parse.Error.INVALID_FILE_NAME, error);
+    }
+    return validateFilename(filename);
   }
 }
 

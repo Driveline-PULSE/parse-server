@@ -25,9 +25,9 @@ class Subscriber extends events.EventEmitter {
   }
 
   subscribe(channel: string): void {
-    const handler = (message) => {
+    const handler = message => {
       this.emit('message', channel, message);
-    }
+    };
     this.subscriptions.set(channel, handler);
     this.emitter.on(channel, handler);
   }
@@ -46,14 +46,16 @@ function createPublisher(): any {
 }
 
 function createSubscriber(): any {
+  // createSubscriber is called once at live query server start
+  // to avoid max listeners warning, we should clean up the event emitter
+  // each time this function is called
+  emitter.removeAllListeners();
   return new Subscriber(emitter);
 }
 
 const EventEmitterPubSub = {
   createPublisher,
-  createSubscriber
-}
+  createSubscriber,
+};
 
-export {
-  EventEmitterPubSub
-}
+export { EventEmitterPubSub };

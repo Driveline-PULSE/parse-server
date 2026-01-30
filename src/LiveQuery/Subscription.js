@@ -49,6 +49,4 @@ class Subscription {
   }
 }
 
-export {
-  Subscription
-}
+export { Subscription };

@@ -10,10 +10,8 @@ based on the parameters passed
 
 // _adapter is private, use Symbol
 var _adapter = Symbol();
-import Config from '../Config';
 
 export class AdaptableController {
-
   constructor(adapter, appId, options) {
     this.options = options;
     this.appId = appId;
@@ -29,12 +27,8 @@ export class AdaptableController {
     return this[_adapter];
   }
 
-  get config() {
-    return new Config(this.appId);
-  }
-
   expectedAdapterType() {
-    throw new Error("Subclasses should implement expectedAdapterType()");
+    throw new Error('Subclasses should implement expectedAdapterType()');
   }
 
   validateAdapter(adapter) {
@@ -43,7 +37,7 @@ export class AdaptableController {
 
   static validateAdapter(adapter, self, ExpectedType) {
     if (!adapter) {
-      throw new Error(this.constructor.name + " requires an adapter");
+      throw new Error(this.constructor.name + ' requires an adapter');
     }
 
     const Type = ExpectedType || self.expectedAdapterType();
@@ -59,8 +53,8 @@ export class AdaptableController {
       if (adapterType !== expectedType) {
         obj[key] = {
           expected: expectedType,
-          actual: adapterType
-        }
+          actual: adapterType,
+        };
       }
       return obj;
     }, {});

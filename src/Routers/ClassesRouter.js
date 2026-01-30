@@ -1,44 +1,30 @@
-
 import PromiseRouter from '../PromiseRouter';
-import rest          from '../rest';
-import _             from 'lodash';
-import Parse         from 'parse/node';
+import rest from '../rest';
+import _ from 'lodash';
+import Parse from 'parse/node';
+import { promiseEnsureIdempotency } from '../middlewares';
+import { createSanitizedError } from '../Error';
 
-const ALLOWED_GET_QUERY_KEYS = ['keys', 'include'];
+const ALLOWED_GET_QUERY_KEYS = [
+  'keys',
+  'include',
+  'excludeKeys',
+  'readPreference',
+  'includeReadPreference',
+  'subqueryReadPreference',
+];
 
 export class ClassesRouter extends PromiseRouter {
+  className(req) {
+    return req.params.className;
+  }
 
   handleFind(req) {
-    const body = Object.assign(req.body, ClassesRouter.JSONFromQuery(req.query));
-    const options = {};
-    const allowConstraints = ['skip', 'limit', 'order', 'count', 'keys',
-      'include', 'redirectClassNameForKey', 'where'];
-
-    for (const key of Object.keys(body)) {
-      if (allowConstraints.indexOf(key) === -1) {
-        throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid parameter for query: ${key}`);
-      }
-    }
-
-    if (body.skip) {
-      options.skip = Number(body.skip);
-    }
-    if (body.limit || body.limit === 0) {
-      options.limit = Number(body.limit);
-    } else {
-      options.limit = Number(100);
-    }
-    if (body.order) {
-      options.order = String(body.order);
-    }
-    if (body.count) {
-      options.count = true;
-    }
-    if (typeof body.keys == 'string') {
-      options.keys = body.keys;
-    }
-    if (body.include) {
-      options.include = String(body.include);
+    const body = Object.assign(req.body || {}, ClassesRouter.JSONFromQuery(req.query));
+    const options = ClassesRouter.optionsFromBody(body, req.config.defaultLimit);
+    if (req.config.maxLimit && body.limit > req.config.maxLimit) {
+      // Silently replace the limit on the query with the max configured
+      options.limit = Number(req.config.maxLimit);
     }
     if (body.redirectClassNameForKey) {
       options.redirectClassNameForKey = String(body.redirectClassNameForKey);
@@ -46,22 +32,24 @@ export class ClassesRouter extends PromiseRouter {
     if (typeof body.where === 'string') {
       body.where = JSON.parse(body.where);
     }
-    return rest.find(req.config, req.auth, req.params.className, body.where, options, req.info.clientSDK)
-      .then((response) => {
-        if (response && response.results) {
-          for (const result of response.results) {
-            if (result.sessionToken) {
-              result.sessionToken = req.info.sessionToken || result.sessionToken;
-            }
-          }
-        }
+    return rest
+      .find(
+        req.config,
+        req.auth,
+        this.className(req),
+        body.where,
+        options,
+        req.info.clientSDK,
+        req.info.context
+      )
+      .then(response => {
         return { response: response };
       });
   }
 
   // Returns a promise for a {response} object.
   handleGet(req) {
-    const body = Object.assign(req.body, ClassesRouter.JSONFromQuery(req.query));
+    const body = Object.assign(req.body || {}, ClassesRouter.JSONFromQuery(req.query));
     const options = {};
 
     for (const key of Object.keys(body)) {
@@ -70,24 +58,44 @@ export class ClassesRouter extends PromiseRouter {
       }
     }
 
-    if (typeof body.keys == 'string') {
-      options.keys = body.keys;
+    if (body.keys != null) {
+      options.keys = String(body.keys);
     }
-    if (body.include) {
+    if (body.include != null) {
       options.include = String(body.include);
     }
+    if (body.excludeKeys != null) {
+      options.excludeKeys = String(body.excludeKeys);
+    }
+    if (typeof body.readPreference === 'string') {
+      options.readPreference = body.readPreference;
+    }
+    if (typeof body.includeReadPreference === 'string') {
+      options.includeReadPreference = body.includeReadPreference;
+    }
+    if (typeof body.subqueryReadPreference === 'string') {
+      options.subqueryReadPreference = body.subqueryReadPreference;
+    }
 
-    return rest.get(req.config, req.auth, req.params.className, req.params.objectId, options, req.info.clientSDK)
-      .then((response) => {
+    return rest
+      .get(
+        req.config,
+        req.auth,
+        this.className(req),
+        req.params.objectId,
+        options,
+        req.info.clientSDK,
+        req.info.context
+      )
+      .then(response => {
         if (!response.results || response.results.length == 0) {
           throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'Object not found.');
         }
 
-        if (req.params.className === "_User") {
-
+        if (this.className(req) === '_User') {
           delete response.results[0].sessionToken;
 
-          const user =  response.results[0];
+          const user = response.results[0];
 
           if (req.auth.user && user.objectId == req.auth.user.id) {
             // Force the session token
@@ -99,21 +107,55 @@ export class ClassesRouter extends PromiseRouter {
   }
 
   handleCreate(req) {
-    return rest.create(req.config, req.auth, req.params.className, req.body, req.info.clientSDK);
+    if (
+      this.className(req) === '_User' &&
+      typeof req.body?.objectId === 'string' &&
+      req.body.objectId.startsWith('role:')
+    ) {
+      throw createSanitizedError(Parse.Error.OPERATION_FORBIDDEN, 'Invalid object ID.', req.config);
+    }
+    return rest.create(
+      req.config,
+      req.auth,
+      this.className(req),
+      req.body || {},
+      req.info.clientSDK,
+      req.info.context
+    );
   }
 
   handleCreateBatch(req) {
-    return rest.createBatch(req.config, req.auth, req.params.className, req.body, req.info.clientSDK);
+    if (!Array.isArray(req.body)) {
+      throw new Parse.Error(Parse.Error.INVALID_JSON, 'Request body must be an array of objects.');
+    }
+    return rest.createBatch(
+      req.config,
+      req.auth,
+      this.className(req),
+      req.body,
+      req.info.clientSDK,
+      req.info.context
+    );
   }
 
   handleUpdate(req) {
-    return rest.update(req.config, req.auth, req.params.className, req.params.objectId, req.body, req.info.clientSDK);
+    const where = { objectId: req.params.objectId };
+    return rest.update(
+      req.config,
+      req.auth,
+      this.className(req),
+      where,
+      req.body || {},
+      req.info.clientSDK,
+      req.info.context
+    );
   }
 
   handleDelete(req) {
-    return rest.del(req.config, req.auth, req.params.className, req.params.objectId, req.info.clientSDK)
+    return rest
+      .del(req.config, req.auth, this.className(req), req.params.objectId, req.info.context)
       .then(() => {
-        return {response: {}};
+        return { response: {} };
       });
   }
 
@@ -122,20 +164,105 @@ export class ClassesRouter extends PromiseRouter {
     for (const [key, value] of _.entries(query)) {
       try {
         json[key] = JSON.parse(value);
-      } catch (e) {
+      } catch {
         json[key] = value;
       }
     }
-    return json
+    return json;
+  }
+
+  static optionsFromBody(body, defaultLimit) {
+    const allowConstraints = [
+      'skip',
+      'limit',
+      'order',
+      'count',
+      'keys',
+      'excludeKeys',
+      'include',
+      'includeAll',
+      'redirectClassNameForKey',
+      'where',
+      'readPreference',
+      'includeReadPreference',
+      'subqueryReadPreference',
+      'hint',
+      'explain',
+      'comment',
+    ];
+
+    for (const key of Object.keys(body)) {
+      if (allowConstraints.indexOf(key) === -1) {
+        throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid parameter for query: ${key}`);
+      }
+    }
+    const options = {};
+    if (body.skip) {
+      options.skip = Number(body.skip);
+    }
+    if (body.limit || body.limit === 0) {
+      options.limit = Number(body.limit);
+    } else {
+      options.limit = Number(defaultLimit);
+    }
+    if (body.order) {
+      options.order = String(body.order);
+    }
+    if (body.count) {
+      options.count = true;
+    }
+    if (body.keys != null) {
+      options.keys = String(body.keys);
+    }
+    if (body.excludeKeys != null) {
+      options.excludeKeys = String(body.excludeKeys);
+    }
+    if (body.include != null) {
+      options.include = String(body.include);
+    }
+    if (body.includeAll) {
+      options.includeAll = true;
+    }
+    if (typeof body.readPreference === 'string') {
+      options.readPreference = body.readPreference;
+    }
+    if (typeof body.includeReadPreference === 'string') {
+      options.includeReadPreference = body.includeReadPreference;
+    }
+    if (typeof body.subqueryReadPreference === 'string') {
+      options.subqueryReadPreference = body.subqueryReadPreference;
+    }
+    if (body.hint && (typeof body.hint === 'string' || typeof body.hint === 'object')) {
+      options.hint = body.hint;
+    }
+    if (body.explain) {
+      options.explain = body.explain;
+    }
+    if (body.comment && typeof body.comment === 'string') {
+      options.comment = body.comment;
+    }
+    return options;
   }
 
   mountRoutes() {
-    this.route('GET', '/classes/:className', (req) => { return this.handleFind(req); });
-    this.route('GET', '/classes/:className/:objectId', (req) => { return this.handleGet(req); });
-    this.route('POST', '/classes/:className', (req) => { return this.handleCreate(req); });
-    this.route('POST', '/classes/:className/batch', (req) => { return this.handleCreateBatch(req); });
-    this.route('PUT', '/classes/:className/:objectId', (req) => { return this.handleUpdate(req); });
-    this.route('DELETE',  '/classes/:className/:objectId', (req) => { return this.handleDelete(req); });
+    this.route('GET', '/classes/:className', req => {
+      return this.handleFind(req);
+    });
+    this.route('GET', '/classes/:className/:objectId', req => {
+      return this.handleGet(req);
+    });
+    this.route('POST', '/classes/:className', promiseEnsureIdempotency, req => {
+      return this.handleCreate(req);
+    });
+    this.route('POST', '/classes/:className/batch', promiseEnsureIdempotency, req => {
+      return this.handleCreateBatch(req);
+    });
+    this.route('PUT', '/classes/:className/:objectId', promiseEnsureIdempotency, req => {
+      return this.handleUpdate(req);
+    });
+    this.route('DELETE', '/classes/:className/:objectId', req => {
+      return this.handleDelete(req);
+    });
   }
 }
 

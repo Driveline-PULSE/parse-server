@@ -2,35 +2,66 @@
 
 // Helper functions for accessing the vkontakte API.
 
-var https = require('https');
+const httpsRequest = require('./httpsRequest');
 var Parse = require('parse/node').Parse;
-var logger = require('../../logger').default;
+import Config from '../../Config';
+import Deprecator from '../../Deprecator/Deprecator';
 
 // Returns a promise that fulfills iff this user id is valid.
-function validateAuthData(authData, params) {
-  return vkOAuth2Request(params).then(function (response) {
-    if (response && response && response.access_token) {
-      return request("api.vk.com", "method/secure.checkToken?token=" + authData.access_token + "&client_secret=" + params.appSecret + "&access_token=" + response.access_token).then(function (response) {
-        if (response && response.response && response.response.user_id == authData.id) {
-          return;
-        }
-        throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'Vk auth is invalid for this user.');
-      });
-    }
-    logger.error('Vk Auth', 'Vk appIds or appSecret is incorrect.');
+async function validateAuthData(authData, params) {
+  const config = Config.get(Parse.applicationId);
+  Deprecator.logRuntimeDeprecation({ usage: 'vkontakte adapter' });
+
+  const vkConfig = config.auth.vkontakte;
+  if (!vkConfig?.enableInsecureAuth || !config.enableInsecureAuthAdapters) {
+    throw new Parse.Error('Vk only works with enableInsecureAuth: true');
+  }
+
+  const response = await vkOAuth2Request(params);
+  if (!response?.access_token) {
     throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'Vk appIds or appSecret is incorrect.');
-  });
+  }
+
+  const vkUser = await request(
+    'api.vk.com',
+    `method/users.get?access_token=${authData.access_token}&v=${params.apiVersion}`
+  );
+
+  if (!vkUser?.response?.length || vkUser.response[0].id !== authData.id) {
+    throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'Vk auth is invalid for this user.');
+  }
 }
 
 function vkOAuth2Request(params) {
-  var promise = new Parse.Promise();
-  return promise.then(function(){
-    if (!params || !params.appIds || !params.appIds.length || !params.appSecret || !params.appSecret.length) {
-      logger.error('Vk Auth', 'Vk auth is not configured. Missing appIds or appSecret.');
-      throw new Parse.Error(Parse.Error.OBJECT_NOT_FOUND, 'Vk auth is not configured. Missing appIds or appSecret.');
+  return new Promise(function (resolve) {
+    if (
+      !params ||
+      !params.appIds ||
+      !params.appIds.length ||
+      !params.appSecret ||
+      !params.appSecret.length
+    ) {
+      throw new Parse.Error(
+        Parse.Error.OBJECT_NOT_FOUND,
+        'Vk auth is not configured. Missing appIds or appSecret.'
+      );
     }
-    return request("oauth.vk.com", "access_token?client_id=" + params.appIds + "&client_secret=" + params.appSecret + "&v=5.59&grant_type=client_credentials")
-  })
+    if (!params.apiVersion) {
+      params.apiVersion = '5.124';
+    }
+    resolve();
+  }).then(function () {
+    return request(
+      'oauth.vk.com',
+      'access_token?client_id=' +
+        params.appIds +
+        '&client_secret=' +
+        params.appSecret +
+        '&v=' +
+        params.apiVersion +
+        '&grant_type=client_credentials'
+    );
+  });
 }
 
 // Returns a promise that fulfills iff this app id is valid.
@@ -40,27 +71,10 @@ function validateAppId() {
 
 // A promisey wrapper for api requests
 function request(host, path) {
-  return new Promise(function (resolve, reject) {
-    https.get("https://" + host + "/" + path, function (res) {
-      var data = '';
-      res.on('data', function (chunk) {
-        data += chunk;
-      });
-      res.on('end', function () {
-        try {
-          data = JSON.parse(data);
-        } catch(e) {
-          return reject(e);
-        }
-        resolve(data);
-      });
-    }).on('error', function () {
-      reject('Failed to validate this access token with Vk.');
-    });
-  });
+  return httpsRequest.get('https://' + host + '/' + path);
 }
 
 module.exports = {
   validateAppId: validateAppId,
-  validateAuthData: validateAuthData
+  validateAuthData: validateAuthData,
 };

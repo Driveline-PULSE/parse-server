@@ -1,4 +1,3 @@
-
 const parser = require('./PostgresConfigParser');
 
 export function createClient(uri, databaseOptions) {
@@ -14,8 +13,18 @@ export function createClient(uri, databaseOptions) {
   }
 
   const initOptions = dbOptions.initOptions || {};
+  initOptions.noWarnings = process && process.env.TESTING;
+
   const pgp = require('pg-promise')(initOptions);
   const client = pgp(dbOptions);
+
+  if (process.env.PARSE_SERVER_LOG_LEVEL === 'debug') {
+    const monitor = require('pg-monitor');
+    if (monitor.isAttached()) {
+      monitor.detach();
+    }
+    monitor.attach(initOptions);
+  }
 
   if (dbOptions.pgOptions) {
     for (const key in dbOptions.pgOptions) {
@@ -23,5 +32,5 @@ export function createClient(uri, databaseOptions) {
     }
   }
 
-  return client;
+  return { client, pgp };
 }

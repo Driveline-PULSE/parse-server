@@ -1,21 +1,51 @@
-FROM node:boron
+############################################################
+# Build stage
+############################################################
+FROM node:20.19.0-alpine3.20 AS build
 
-RUN mkdir -p /parse-server
-COPY ./ /parse-server/
+RUN apk --no-cache add \
+   build-base \
+   git \
+   python3
 
-RUN mkdir -p /parse-server/config
-VOLUME /parse-server/config
+WORKDIR /tmp
 
-RUN mkdir -p /parse-server/cloud
-VOLUME /parse-server/cloud
+# Copy package.json first to benefit from layer caching
+COPY package*.json ./
+
+# Copy src to have config files for install
+COPY . .
+
+# Install without scripts
+RUN npm ci --omit=dev --ignore-scripts \
+    # Copy production node_modules aside for later
+ && cp -R node_modules prod_node_modules \
+    # Install all dependencies
+ && npm ci \
+    # Run build steps
+ && npm run build
+
+############################################################
+# Release stage
+############################################################
+FROM node:20.19.0-alpine3.20 AS release
+
+VOLUME /parse-server/cloud /parse-server/config
 
 WORKDIR /parse-server
 
-RUN npm install && \
-    npm run build
+# Copy build stage folders
+COPY --from=build /tmp/prod_node_modules /parse-server/node_modules
+COPY --from=build /tmp/lib lib
+
+COPY package*.json ./
+COPY bin bin
+COPY public public
+COPY views views
+RUN mkdir -p logs && chown -R node: logs
 
 ENV PORT=1337
-
+USER node
 EXPOSE $PORT
 
-ENTRYPOINT ["npm", "start", "--"]
+ENTRYPOINT ["node", "./bin/parse-server"]

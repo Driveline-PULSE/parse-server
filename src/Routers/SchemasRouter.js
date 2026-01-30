@@ -3,8 +3,9 @@
 var Parse = require('parse/node').Parse,
   SchemaController = require('../Controllers/SchemaController');
 
-import PromiseRouter   from '../PromiseRouter';
-import * as middleware from "../middlewares";
+import PromiseRouter from '../PromiseRouter';
+import * as middleware from '../middlewares';
+import { createSanitizedError } from '../Error';
 
 function classNameMismatchResponse(bodyClass, pathClass) {
   throw new Parse.Error(
@@ -14,70 +15,145 @@ function classNameMismatchResponse(bodyClass, pathClass) {
 }
 
 function getAllSchemas(req) {
-  return req.config.database.loadSchema({ clearCache: true})
-  .then(schemaController => schemaController.getAllClasses(true))
-  .then(schemas => ({ response: { results: schemas } }));
+  return req.config.database
+    .loadSchema({ clearCache: true })
+    .then(schemaController => schemaController.getAllClasses({ clearCache: true }))
+    .then(schemas => ({ response: { results: schemas } }));
 }
 
 function getOneSchema(req) {
   const className = req.params.className;
-  return req.config.database.loadSchema({ clearCache: true})
-  .then(schemaController => schemaController.getOneSchema(className, true))
-  .then(schema => ({ response: schema }))
-  .catch(error => {
-    if (error === undefined) {
-      throw new Parse.Error(Parse.Error.INVALID_CLASS_NAME, `Class ${className} does not exist.`);
-    } else {
-      throw new Parse.Error(Parse.Error.INTERNAL_SERVER_ERROR, 'Database adapter error.');
-    }
-  });
+  return req.config.database
+    .loadSchema({ clearCache: true })
+    .then(schemaController => schemaController.getOneSchema(className, true))
+    .then(schema => ({ response: schema }))
+    .catch(error => {
+      if (error === undefined) {
+        throw new Parse.Error(Parse.Error.INVALID_CLASS_NAME, `Class ${className} does not exist.`);
+      } else {
+        throw new Parse.Error(Parse.Error.INTERNAL_SERVER_ERROR, 'Database adapter error.');
+      }
+    });
 }
 
-function createSchema(req) {
-  if (req.params.className && req.body.className) {
+const checkIfDefinedSchemasIsUsed = req => {
+  if (req.config?.schema?.lockSchemas === true) {
+    throw new Parse.Error(
+      Parse.Error.OPERATION_FORBIDDEN,
+      'Cannot perform this operation when schemas options is used.'
+    );
+  }
+};
+
+export const internalCreateSchema = async (className, body, config) => {
+  const controller = await config.database.loadSchema({ clearCache: true });
+  const response = await controller.addClassIfNotExists(
+    className,
+    body.fields,
+    body.classLevelPermissions,
+    body.indexes
+  );
+  return {
+    response,
+  };
+};
+
+export const internalUpdateSchema = async (className, body, config) => {
+  const controller = await config.database.loadSchema({ clearCache: true });
+  const response = await controller.updateClass(
+    className,
+    body.fields || {},
+    body.classLevelPermissions,
+    body.indexes,
+    config.database
+  );
+  return { response };
+};
+
+async function createSchema(req) {
+  checkIfDefinedSchemasIsUsed(req);
+  if (req.auth.isReadOnly) {
+    throw createSanitizedError(
+      Parse.Error.OPERATION_FORBIDDEN,
+      "read-only masterKey isn't allowed to create a schema.",
+      req.config
+    );
+  }
+  if (req.params.className && req.body?.className) {
     if (req.params.className != req.body.className) {
       return classNameMismatchResponse(req.body.className, req.params.className);
     }
   }
 
-  const className = req.params.className || req.body.className;
+  const className = req.params.className || req.body?.className;
   if (!className) {
     throw new Parse.Error(135, `POST ${req.path} needs a class name.`);
   }
 
-  return req.config.database.loadSchema({ clearCache: true})
-    .then(schema => schema.addClassIfNotExists(className, req.body.fields, req.body.classLevelPermissions))
-    .then(schema => ({ response: schema }));
+  return await internalCreateSchema(className, req.body || {}, req.config);
 }
 
 function modifySchema(req) {
-  if (req.body.className && req.body.className != req.params.className) {
+  checkIfDefinedSchemasIsUsed(req);
+  if (req.auth.isReadOnly) {
+    throw createSanitizedError(
+      Parse.Error.OPERATION_FORBIDDEN,
+      "read-only masterKey isn't allowed to update a schema.",
+      req.config
+    );
+  }
+  if (req.body?.className && req.body.className != req.params.className) {
     return classNameMismatchResponse(req.body.className, req.params.className);
   }
-
-  const submittedFields = req.body.fields || {};
   const className = req.params.className;
 
-  return req.config.database.loadSchema({ clearCache: true})
-  .then(schema => schema.updateClass(className, submittedFields, req.body.classLevelPermissions, req.config.database))
-  .then(result => ({response: result}));
+  return internalUpdateSchema(className, req.body || {}, req.config);
 }
 
 const deleteSchema = req => {
-  if (!SchemaController.classNameIsValid(req.params.className)) {
-    throw new Parse.Error(Parse.Error.INVALID_CLASS_NAME, SchemaController.invalidClassNameMessage(req.params.className));
+  if (req.auth.isReadOnly) {
+    throw createSanitizedError(
+      Parse.Error.OPERATION_FORBIDDEN,
+      "read-only masterKey isn't allowed to delete a schema.",
+      req.config
+    );
   }
-  return req.config.database.deleteSchema(req.params.className)
-  .then(() => ({ response: {} }));
-}
+  if (!SchemaController.classNameIsValid(req.params.className)) {
+    throw new Parse.Error(
+      Parse.Error.INVALID_CLASS_NAME,
+      SchemaController.invalidClassNameMessage(req.params.className)
+    );
+  }
+  return req.config.database.deleteSchema(req.params.className).then(() => ({ response: {} }));
+};
 
 export class SchemasRouter extends PromiseRouter {
   mountRoutes() {
     this.route('GET', '/schemas', middleware.promiseEnforceMasterKeyAccess, getAllSchemas);
-    this.route('GET', '/schemas/:className', middleware.promiseEnforceMasterKeyAccess, getOneSchema);
+    this.route(
+      'GET',
+      '/schemas/:className',
+      middleware.promiseEnforceMasterKeyAccess,
+      getOneSchema
+    );
     this.route('POST', '/schemas', middleware.promiseEnforceMasterKeyAccess, createSchema);
-    this.route('POST', '/schemas/:className', middleware.promiseEnforceMasterKeyAccess, createSchema);
-    this.route('PUT', '/schemas/:className', middleware.promiseEnforceMasterKeyAccess, modifySchema);
-    this.route('DELETE', '/schemas/:className', middleware.promiseEnforceMasterKeyAccess, deleteSchema);
+    this.route(
+      'POST',
+      '/schemas/:className',
+      middleware.promiseEnforceMasterKeyAccess,
+      createSchema
+    );
+    this.route(
+      'PUT',
+      '/schemas/:className',
+      middleware.promiseEnforceMasterKeyAccess,
+      modifySchema
+    );
+    this.route(
+      'DELETE',
+      '/schemas/:className',
+      middleware.promiseEnforceMasterKeyAccess,
+      deleteSchema
+    );
   }
 }

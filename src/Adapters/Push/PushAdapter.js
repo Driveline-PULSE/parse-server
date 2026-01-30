@@ -1,5 +1,5 @@
+/* eslint-disable unused-imports/no-unused-vars */
 // @flow
-/*eslint no-unused-vars: "off"*/
 // Push Adapter
 //
 // Allows you to change the push notification mechanism.
@@ -8,10 +8,20 @@
 // * getValidPushTypes()
 // * send(devices, installations, pushStatus)
 //
-// Default is ParsePushAdapter, which uses GCM for
+// Default is ParsePushAdapter, which uses FCM for
 // android push and APNS for ios push.
 
+/**
+ * @interface
+ * @memberof module:Adapters
+ */
 export class PushAdapter {
+  /**
+   * @param {any} body
+   * @param {Parse.Installation[]} installations
+   * @param {any} pushStatus
+   * @returns {Promise}
+   */
   send(body: any, installations: any[], pushStatus: any): ?Promise<*> {}
 
   /**
@@ -19,7 +29,7 @@ export class PushAdapter {
    * @returns {Array} An array of valid push types
    */
   getValidPushTypes(): string[] {
-    return []
+    return [];
   }
 }
 

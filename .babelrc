@@ -1,9 +1,15 @@
 {
     "plugins": [
-        "transform-flow-strip-types"
+        "@babel/plugin-transform-flow-strip-types"
     ],
     "presets": [
-        "es2015",
-        "stage-0"
-    ]
+        "@babel/preset-typescript",
+        ["@babel/preset-env", {
+            "targets": {
+                "node": "18"
+            },
+            "exclude": ["proposal-dynamic-import"]
+        }]
+    ],
+    "sourceMaps": "inline"
 }

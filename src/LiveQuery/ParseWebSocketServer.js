@@ -1,48 +1,62 @@
+import { loadAdapter } from '../Adapters/AdapterLoader';
+import { WSAdapter } from '../Adapters/WebSocketServer/WSAdapter';
 import logger from '../logger';
-
-const typeMap = new Map([['disconnect', 'close']]);
-const getWS = function() {
-  try {
-    return require('uws');
-  } catch(e) {
-    return require('ws');
-  }
-}
+import events from 'events';
+import { inspect } from 'util';
 
 export class ParseWebSocketServer {
   server: Object;
 
-  constructor(server: any, onConnect: Function, websocketTimeout: number = 10 * 1000) {
-    const WebSocketServer = getWS().Server;
-    const wss = new WebSocketServer({ server: server });
-    wss.on('listening', () => {
-      logger.info('Parse LiveQuery Server starts running');
-    });
-    wss.on('connection', (ws) => {
+  constructor(server: any, onConnect: Function, config) {
+    config.server = server;
+    const wss = loadAdapter(config.wssAdapter, WSAdapter, config);
+    wss.onListen = () => {
+      logger.info('Parse LiveQuery Server started running');
+    };
+    wss.onConnection = ws => {
+      ws.waitingForPong = false;
+      ws.on('pong', () => {
+        ws.waitingForPong = false;
+      });
+      ws.on('error', error => {
+        logger.error(error.message);
+        logger.error(inspect(ws, false));
+      });
       onConnect(new ParseWebSocket(ws));
       // Send ping to client periodically
       const pingIntervalId = setInterval(() => {
-        if (ws.readyState == ws.OPEN) {
+        if (!ws.waitingForPong) {
           ws.ping();
+          ws.waitingForPong = true;
         } else {
           clearInterval(pingIntervalId);
+          ws.terminate();
         }
-      }, websocketTimeout);
-    });
+      }, config.websocketTimeout || 10 * 1000);
+    };
+    wss.onError = error => {
+      logger.error(error);
+    };
+    wss.start();
     this.server = wss;
+  }
+
+  close() {
+    if (this.server && this.server.close) {
+      this.server.close();
+    }
   }
 }
 
-export class ParseWebSocket {
+export class ParseWebSocket extends events.EventEmitter {
   ws: any;
 
   constructor(ws: any) {
+    super();
+    ws.onmessage = request =>
+      this.emit('message', request && request.data ? request.data : request);
+    ws.onclose = () => this.emit('disconnect');
     this.ws = ws;
-  }
-
-  on(type: string, callback): void {
-    const wsType = typeMap.has(type) ? typeMap.get(type) : type;
-    this.ws.on(wsType, callback);
   }
 
   send(message: any): void {

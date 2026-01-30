@@ -1,20 +1,43 @@
 'use strict';
 
-const request = require("request");
+const request = require('../lib/request');
 
 describe('features', () => {
-  it('requires the master key to get features', done => {
-    request.get({
+  it('should return the serverInfo', async () => {
+    const response = await request({
       url: 'http://localhost:8378/1/serverInfo',
       json: true,
       headers: {
         'X-Parse-Application-Id': 'test',
-        'X-Parse-REST-API-Key': 'rest'
-      }
-    }, (error, response, body) => {
-      expect(response.statusCode).toEqual(403);
-      expect(body.error).toEqual('unauthorized: master key is required');
-      done();
+        'X-Parse-REST-API-Key': 'rest',
+        'X-Parse-Master-Key': 'test',
+      },
     });
+    const data = response.data;
+    expect(data).toBeDefined();
+    expect(data.features).toBeDefined();
+    expect(data.parseServerVersion).toBeDefined();
+  });
+
+  it('requires the master key to get features', async done => {
+    const logger = require('../lib/logger').default;
+    const loggerErrorSpy = spyOn(logger, 'error').and.callThrough();
+    loggerErrorSpy.calls.reset();
+    try {
+      await request({
+        url: 'http://localhost:8378/1/serverInfo',
+        json: true,
+        headers: {
+          'X-Parse-Application-Id': 'test',
+          'X-Parse-REST-API-Key': 'rest',
+        },
+      });
+      done.fail('The serverInfo request should be rejected without the master key');
+    } catch (error) {
+      expect(error.status).toEqual(403);
+      expect(error.data.error).toEqual('Permission denied');
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Sanitized error:', jasmine.stringContaining('unauthorized: master key is required'));
+      done();
+    }
   });
 });

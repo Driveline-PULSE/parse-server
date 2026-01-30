@@ -1,83 +1,94 @@
-import redis from 'redis';
+import { createClient } from 'redis';
 import logger from '../../logger';
+import { KeyPromiseQueue } from '../../KeyPromiseQueue';
 
 const DEFAULT_REDIS_TTL = 30 * 1000; // 30 seconds in milliseconds
+const FLUSH_DB_KEY = '__flush_db__';
 
-function debug() {
-  logger.debug.apply(logger, ['RedisCacheAdapter', ...arguments]);
+function debug(...args: any) {
+  const message = ['RedisCacheAdapter: ' + arguments[0]].concat(args.slice(1, args.length));
+  logger.debug.apply(logger, message);
 }
 
+const isValidTTL = ttl => typeof ttl === 'number' && ttl > 0;
+
 export class RedisCacheAdapter {
-
   constructor(redisCtx, ttl = DEFAULT_REDIS_TTL) {
-    this.client = redis.createClient(redisCtx);
-    this.p = Promise.resolve();
-    this.ttl = ttl;
+    this.ttl = isValidTTL(ttl) ? ttl : DEFAULT_REDIS_TTL;
+    this.client = createClient(redisCtx);
+    this.queue = new KeyPromiseQueue();
+    this.client.on('error', err => { logger.error('RedisCacheAdapter client error', { error: err }) });
+    this.client.on('connect', () => {});
+    this.client.on('reconnecting', () => {});
+    this.client.on('ready', () => {});
   }
 
-  get(key) {
-    debug('get', key);
-    this.p = this.p.then(() => {
-      return new Promise((resolve) => {
-        this.client.get(key, function(err, res) {
-          debug('-> get', key, res);
-          if(!res) {
-            return resolve(null);
-          }
-          resolve(JSON.parse(res));
-        });
-      });
-    });
-    return this.p;
+  async connect() {
+    if (this.client.isOpen) {
+      return;
+    }
+    return await this.client.connect();
   }
 
-  put(key, value, ttl = this.ttl) {
+  async handleShutdown() {
+    if (!this.client) {
+      return;
+    }
+    try {
+      await this.client.quit();
+    } catch (err) {
+      logger.error('RedisCacheAdapter error on shutdown', { error: err });
+    }
+  }
+
+  async get(key) {
+    debug('get', { key });
+    try {
+      await this.queue.enqueue(key);
+      const res = await this.client.get(key);
+      if (!res) {
+        return null;
+      }
+      return JSON.parse(res);
+    } catch (err) {
+      logger.error('RedisCacheAdapter error on get', { error: err });
+    }
+  }
+
+  async put(key, value, ttl = this.ttl) {
     value = JSON.stringify(value);
-    debug('put', key, value, ttl);
+    debug('put', { key, value, ttl });
+    await this.queue.enqueue(key);
     if (ttl === 0) {
-      return this.p; // ttl of zero is a logical no-op, but redis cannot set expire time of zero
+      // ttl of zero is a logical no-op, but redis cannot set expire time of zero
+      return;
     }
-    if (ttl < 0 || isNaN(ttl)) {
-      ttl = DEFAULT_REDIS_TTL;
+
+    if (ttl === Infinity) {
+      return this.client.set(key, value);
     }
-    this.p = this.p.then(() => {
-      return new Promise((resolve) => {
-        if (ttl === Infinity) {
-          this.client.set(key, value, function() {
-            resolve();
-          });
-        } else {
-          this.client.psetex(key, ttl, value, function() {
-            resolve();
-          });
-        }
-      });
-    });
-    return this.p;
+
+    if (!isValidTTL(ttl)) {
+      ttl = this.ttl;
+    }
+    return this.client.set(key, value, { PX: ttl });
   }
 
-  del(key) {
-    debug('del', key);
-    this.p = this.p.then(() => {
-      return new Promise((resolve) => {
-        this.client.del(key, function() {
-          resolve();
-        });
-      });
-    });
-    return this.p;
+  async del(key) {
+    debug('del', { key });
+    await this.queue.enqueue(key);
+    return this.client.del(key);
   }
 
-  clear() {
+  async clear() {
     debug('clear');
-    this.p = this.p.then(() => {
-      return new Promise((resolve) => {
-        this.client.flushdb(function() {
-          resolve();
-        });
-      });
-    });
-    return this.p;
+    await this.queue.enqueue(FLUSH_DB_KEY);
+    return this.client.sendCommand(['FLUSHDB']);
+  }
+
+  // Used for testing
+  getAllKeys() {
+    return this.client.keys('*');
   }
 }
 

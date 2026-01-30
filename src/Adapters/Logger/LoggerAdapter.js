@@ -1,16 +1,20 @@
-/*eslint no-unused-vars: "off"*/
-// Logger Adapter
-//
-// Allows you to change the logger mechanism
-//
-// Adapter classes must implement the following functions:
-// * log() {}
-// * query(options, callback) /* optional */
-// Default is WinstonLoggerAdapter.js
-
+/* eslint-disable unused-imports/no-unused-vars */
+/**
+ * @interface
+ * @memberof module:Adapters
+ * Logger Adapter
+ * Allows you to change the logger mechanism
+ * Default is WinstonLoggerAdapter.js
+ */
 export class LoggerAdapter {
   constructor(options) {}
-  log(level, message, /* meta */) {}
+  /**
+   * log
+   * @param {String} level
+   * @param {String} message
+   * @param {Object} metadata
+   */
+  log(level, message /* meta */) {}
 }
 
 export default LoggerAdapter;

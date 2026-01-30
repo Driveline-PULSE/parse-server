@@ -1,7 +1,6 @@
 import { Parse } from 'parse/node';
 import AdaptableController from './AdaptableController';
 import { LoggerAdapter } from '../Adapters/Logger/LoggerAdapter';
-import url from 'url';
 
 const MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000;
 const LOG_STRING_TRUNCATE_LENGTH = 1000;
@@ -9,23 +8,56 @@ const truncationMarker = '... (truncated)';
 
 export const LogLevel = {
   INFO: 'info',
-  ERROR: 'error'
-}
+  ERROR: 'error',
+};
 
 export const LogOrder = {
   DESCENDING: 'desc',
-  ASCENDING: 'asc'
-}
+  ASCENDING: 'asc',
+};
+
+export const logLevels = ['error', 'warn', 'info', 'debug', 'verbose', 'silly', 'silent'];
 
 export class LoggerController extends AdaptableController {
-
-  maskSensitiveUrl(urlString) {
-    const password = url.parse(urlString, true).query.password;
-
-    if (password) {
-      urlString = urlString.replace('password=' + password, 'password=********');
+  constructor(adapter, appId, options = { logLevel: 'info' }) {
+    super(adapter, appId, options);
+    let level = 'info';
+    if (options.verbose) {
+      level = 'verbose';
     }
-    return urlString;
+    if (options.logLevel) {
+      level = options.logLevel;
+    }
+    const index = logLevels.indexOf(level); // info by default
+    logLevels.forEach((level, levelIndex) => {
+      if (levelIndex > index) {
+        // silence the levels that are > maxIndex
+        this[level] = () => {};
+      }
+    });
+  }
+
+  maskSensitiveUrl(path) {
+    const urlString = 'http://localhost' + path; // prepend dummy string to make a real URL
+    const urlObj = new URL(urlString);
+    const query = urlObj.searchParams;
+    let sanitizedQuery = '?';
+
+    for (const [key, value] of query) {
+      if (key !== 'password') {
+        // normal value
+        sanitizedQuery += key + '=' + value + '&';
+      } else {
+        // password value, redact it
+        sanitizedQuery += key + '=' + '********' + '&';
+      }
+    }
+
+    // trim last character, ? or &
+    sanitizedQuery = sanitizedQuery.slice(0, -1);
+
+    // return original path name with sanitized params attached
+    return urlObj.pathname + sanitizedQuery;
   }
 
   maskSensitive(argArray) {
@@ -44,7 +76,8 @@ export class LoggerController extends AdaptableController {
         // for strings
         if (typeof e.url === 'string') {
           e.url = this.maskSensitiveUrl(e.url);
-        } else if (Array.isArray(e.url)) { // for strings in array
+        } else if (Array.isArray(e.url)) {
+          // for strings in array
           e.url = e.url.map(item => {
             if (typeof item === 'string') {
               return this.maskSensitiveUrl(item);
@@ -64,6 +97,15 @@ export class LoggerController extends AdaptableController {
         }
       }
 
+      if (e.params) {
+        for (const key of Object.keys(e.params)) {
+          if (key === 'password') {
+            e.params[key] = '********';
+            break;
+          }
+        }
+      }
+
       return e;
     });
   }
@@ -71,7 +113,15 @@ export class LoggerController extends AdaptableController {
   log(level, args) {
     // make the passed in arguments object an array with the spread operator
     args = this.maskSensitive([...args]);
-    args = [].concat(level, args);
+    args = [].concat(
+      level,
+      args.map(arg => {
+        if (typeof arg === 'function') {
+          return arg();
+        }
+        return arg;
+      })
+    );
     this.adapter.log.apply(this.adapter, args);
   }
 
@@ -98,6 +148,31 @@ export class LoggerController extends AdaptableController {
   silly() {
     return this.log('silly', arguments);
   }
+
+  logRequest({ method, url, headers, body }) {
+    this.verbose(
+      () => {
+        const stringifiedBody = JSON.stringify(body, null, 2);
+        return `REQUEST for [${method}] ${url}: ${stringifiedBody}`;
+      },
+      {
+        method,
+        url,
+        headers,
+        body,
+      }
+    );
+  }
+
+  logResponse({ method, url, result }) {
+    this.verbose(
+      () => {
+        const stringifiedResponse = JSON.stringify(result, null, 2);
+        return `RESPONSE from [${method}] ${url}: ${stringifiedResponse}`;
+      },
+      { result: result }
+    );
+  }
   // check that date input is valid
   static validDateTime(date) {
     if (!date) {
@@ -122,7 +197,8 @@ export class LoggerController extends AdaptableController {
   }
 
   static parseOptions(options = {}) {
-    const from = LoggerController.validDateTime(options.from) ||
+    const from =
+      LoggerController.validDateTime(options.from) ||
       new Date(Date.now() - 7 * MILLISECONDS_IN_A_DAY);
     const until = LoggerController.validDateTime(options.until) || new Date();
     const size = Number(options.size) || 10;
@@ -147,12 +223,13 @@ export class LoggerController extends AdaptableController {
   // size (optional) Number of rows returned by search. Defaults to 10
   getLogs(options = {}) {
     if (!this.adapter) {
-      throw new Parse.Error(Parse.Error.PUSH_MISCONFIGURED,
-        'Logger adapter is not available');
+      throw new Parse.Error(Parse.Error.PUSH_MISCONFIGURED, 'Logger adapter is not available');
     }
     if (typeof this.adapter.query !== 'function') {
-      throw new Parse.Error(Parse.Error.PUSH_MISCONFIGURED,
-        'Querying logs is not supported with this adapter');
+      throw new Parse.Error(
+        Parse.Error.PUSH_MISCONFIGURED,
+        'Querying logs is not supported with this adapter'
+      );
     }
     options = LoggerController.parseOptions(options);
     return this.adapter.query(options);
