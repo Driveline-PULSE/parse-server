@@ -165,7 +165,7 @@ RestWriteBatch.prototype.runBeforeTrigger = async function () {
 };
 
 RestWriteBatch.prototype.setRequiredFieldsIfNeeded = async function () {
-  if (!this.dataArray) return;
+  if (!this.dataArray) { return; }
 
   // Add default fields
   this.dataArray.forEach(data => {

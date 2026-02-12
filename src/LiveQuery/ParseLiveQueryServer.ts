@@ -60,7 +60,9 @@ class ParseLiveQueryServer {
     Parse.Object.disableSingleInstance();
     const serverURL = config.serverURL || Parse.serverURL;
     Parse.serverURL = serverURL;
-    Parse.initialize(config.appId, Parse.javaScriptKey, config.masterKey);
+    // TODO: Parse types only accept 2 args, but runtime supports 3
+    // Parse.initialize(config.appId, Parse.javaScriptKey, config.masterKey);
+    (Parse.initialize as any)(config.appId, Parse.javaScriptKey, config.masterKey);
 
     // The cache controller is a proper cache controller
     // with access to User and Roles
