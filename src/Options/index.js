@@ -171,6 +171,11 @@ export interface ParseServerOptions {
   :ENV: PARSE_SERVER_ENABLE_INSECURE_AUTH_ADAPTERS
   :DEFAULT: false */
   enableInsecureAuthAdapters: ?boolean;
+  /* Set to `false` to skip the `beforeFind` trigger for internal include queries. Disable only when parent `afterFind` triggers authorize every included object. Direct queries still run `beforeFind`; included queries still enforce ACLs, class permissions, protected fields, and `afterFind` triggers.
+  <br><br>
+  Default is `true`.
+  :DEFAULT: true */
+  enableBeforeFindOnInclude: ?boolean;
   /* Max file size for uploads, defaults to 20mb
   :DEFAULT: 20mb */
   maxUploadSize: ?string;

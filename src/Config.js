@@ -125,6 +125,7 @@ export class Config {
     security,
     enforcePrivateUsers,
     enableInsecureAuthAdapters,
+    enableBeforeFindOnInclude,
     schema,
     requestKeywordDenylist,
     allowExpiredAuthDataToken,
@@ -167,6 +168,9 @@ export class Config {
     this.validateSchemaOptions(schema);
     this.validateEnforcePrivateUsers(enforcePrivateUsers);
     this.validateEnableInsecureAuthAdapters(enableInsecureAuthAdapters);
+    if (enableBeforeFindOnInclude !== undefined && typeof enableBeforeFindOnInclude !== 'boolean') {
+      throw 'enableBeforeFindOnInclude must be a boolean value';
+    }
     this.validateAllowExpiredAuthDataToken(allowExpiredAuthDataToken);
     this.validateRequestKeywordDenylist(requestKeywordDenylist);
     this.validateRateLimit(rateLimit);

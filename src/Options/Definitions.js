@@ -228,6 +228,13 @@ module.exports.ParseServerOptions = {
     action: parsers.booleanParser,
     default: true,
   },
+  enableBeforeFindOnInclude: {
+    env: 'PARSE_SERVER_ENABLE_BEFORE_FIND_ON_INCLUDE',
+    help:
+      'Set to `false` to skip the `beforeFind` trigger for internal include queries. Disable only when parent `afterFind` triggers authorize every included object. Direct queries still run `beforeFind`; included queries still enforce ACLs, class permissions, protected fields, and `afterFind` triggers.<br><br>Default is `true`.',
+    action: parsers.booleanParser,
+    default: true,
+  },
   enableCollationCaseComparison: {
     env: 'PARSE_SERVER_ENABLE_COLLATION_CASE_COMPARISON',
     help:

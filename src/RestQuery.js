@@ -1059,6 +1059,7 @@ function includePath(config, auth, response, path, context, restOptions = {}) {
       className,
       restWhere: where,
       restOptions: includeRestOptions,
+      runBeforeFind: config.enableBeforeFindOnInclude !== false,
       context: context,
     });
     return query.execute({ op: 'get' }).then(results => {

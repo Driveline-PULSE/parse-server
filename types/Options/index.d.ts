@@ -73,6 +73,8 @@ export interface ParseServerOptions {
     allowCustomObjectId?: boolean;
     auth?: Record<string, AuthAdapter>;
     enableInsecureAuthAdapters?: boolean;
+    /** Set to false to skip the beforeFind trigger for internal include queries. Disable only when parent afterFind triggers authorize every included object. Direct beforeFind, ACLs, class permissions, protected fields, and afterFind remain enabled. Defaults to true. */
+    enableBeforeFindOnInclude?: boolean;
     maxUploadSize?: string;
     verifyUserEmails?: (boolean | void);
     preventLoginWithUnverifiedEmail?: boolean;
